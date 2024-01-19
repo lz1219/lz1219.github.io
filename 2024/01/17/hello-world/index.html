@@ -173,6 +173,7 @@
       repo: 'lz1219.github.io',
       owner: 'lz1219',
       admin: ['lz1219'],
+      proxy: 'https://cors-anywhere.1l1.icu/https://github.com/login/oauth/access_token',
       id: 'f1569f778b18efbca85f45ea6405d59e',
       updateCountCallback: commentCount
     },null))
@@ -188,7 +189,7 @@
       initGitalk()
     }
   }
-  
+
   const commentCount = n => {
     const isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
     if (isCommentCount) {
