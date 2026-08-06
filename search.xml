@@ -20,13 +20,13 @@
       
         <tags>
             
-            <tag> 运维 </tag>
-            
             <tag> Docker </tag>
             
             <tag> Docker Compose </tag>
             
             <tag> 容器 </tag>
+            
+            <tag> 运维 </tag>
             
         </tags>
       
@@ -51,9 +51,9 @@
       
         <tags>
             
-            <tag> Linux </tag>
-            
             <tag> 运维 </tag>
+            
+            <tag> Linux </tag>
             
             <tag> 命令行 </tag>
             
