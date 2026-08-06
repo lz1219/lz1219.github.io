@@ -1,0 +1,341 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>MySQL 实战手册（三）：视图与常用函数精讲 | lz9527</title><meta name="author" content="lz9527"><meta name="copyright" content="lz9527"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="MySQL 实战手册第三篇，视图创建&#x2F;更新&#x2F;性能真相，字符串&#x2F;日期&#x2F;聚合&#x2F;窗口函数实战精讲，含 GROUP_CONCAT 截断、NULL 处理等高频坑">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL 实战手册（三）：视图与常用函数精讲">
+<meta property="og:url" content="https://lz1219.github.io/2026/08/eb26afd2/index.html">
+<meta property="og:site_name" content="lz9527">
+<meta property="og:description" content="MySQL 实战手册第三篇，视图创建&#x2F;更新&#x2F;性能真相，字符串&#x2F;日期&#x2F;聚合&#x2F;窗口函数实战精讲，含 GROUP_CONCAT 截断、NULL 处理等高频坑">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lz1219.github.io/config/img/post/database-cover.jpg">
+<meta property="article:published_time" content="2026-08-06T08:21:27.000Z">
+<meta property="article:modified_time" content="2026-08-06T08:33:37.875Z">
+<meta property="article:author" content="lz9527">
+<meta property="article:tag" content="MySQL">
+<meta property="article:tag" content="SQL">
+<meta property="article:tag" content="窗口函数">
+<meta property="article:tag" content="视图">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lz1219.github.io/config/img/post/database-cover.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "MySQL 实战手册（三）：视图与常用函数精讲",
+  "url": "https://lz1219.github.io/2026/08/eb26afd2/",
+  "image": "https://lz1219.github.io/config/img/post/database-cover.jpg",
+  "datePublished": "2026-08-06T08:21:27.000Z",
+  "dateModified": "2026-08-06T08:33:37.875Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "lz9527",
+      "url": "https://lz1219.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://lz1219.github.io/2026/08/eb26afd2/index.html"><link rel="preconnect"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.7.0"><link rel="stylesheet" href="/pluginsSrc/@fortawesome/fontawesome-free/css/all.min.css?v=7.3.1"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+
+    const scriptCache = new Map()
+    const cssCache = new Map()
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      const activateDarkMode = () => {
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: '/pluginsSrc/@egjs/infinitegrid/dist/infinitegrid.min.js?v=4.13.0',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'MySQL 实战手册（三）：视图与常用函数精讲',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/config/css/mycolor.css"><meta name="generator" content="Hexo 8.1.2"><link rel="alternate" href="/atom.xml" title="lz9527" type="application/atom+xml">
+</head><body><div class="bg-animation" id="web_bg" style="background-color: #efefef;"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/config/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">18</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">32</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">5</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fa fa-heartbeat"></i><span> 清单</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 读书</span></a></li><li><a class="site-page child" href="/songs/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/config/img/post/database-cover.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">lz9527</span></a><a class="nav-page-title" href="/"><span class="site-name">MySQL 实战手册（三）：视图与常用函数精讲</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fa fa-heartbeat"></i><span> 清单</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 读书</span></a></li><li><a class="site-page child" href="/songs/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">MySQL 实战手册（三）：视图与常用函数精讲</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-08-06T08:21:27.000Z" title="发表于 2026-08-06 16:21:27">2026-08-06</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-08-06T08:33:37.875Z" title="更新于 2026-08-06 16:33:37">2026-08-06</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/MySQL/">MySQL</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="MySQL-实战手册（三）：视图与常用函数精讲"><a href="#MySQL-实战手册（三）：视图与常用函数精讲" class="headerlink" title="MySQL 实战手册（三）：视图与常用函数精讲"></a>MySQL 实战手册（三）：视图与常用函数精讲</h1><p>系列第三篇。视图是封装复杂查询的利器，内置函数则是日常 SQL 的生产力来源——8.0 加入的窗口函数更是直接改变了报表类 SQL 的写法。沿用前两篇的 <code>shop</code> 库（如果你执行过第二篇的 <code>GenOrders(10000)</code>，现在数据量正好练手）。</p>
+<blockquote>
+<p><strong>系列目录</strong>：<a href="/2026/08/df0776fa/">一、基础命令与日常管理</a> ｜ <a href="/2026/08/bf824c0b/">二、存储过程与自定义函数</a> ｜ <a href="/2026/08/eb26afd2/">三、视图与常用函数精讲</a> ｜ <a href="/2026/08/15377b3c/">四、性能分析与 SQL 调优</a></p>
+</blockquote>
+<h2 id="一、视图：封装而不是存储"><a href="#一、视图：封装而不是存储" class="headerlink" title="一、视图：封装而不是存储"></a>一、视图：封装而不是存储</h2><h3 id="创建与使用"><a href="#创建与使用" class="headerlink" title="创建与使用"></a>创建与使用</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 把&quot;用户 + 消费汇总&quot;的复杂 JOIN 封装成视图</span></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">VIEW</span> v_user_consumption <span class="keyword">AS</span></span><br><span class="line"><span class="keyword">SELECT</span> u.id <span class="keyword">AS</span> user_id,</span><br><span class="line">       u.username,</span><br><span class="line">       u.city,</span><br><span class="line">       <span class="built_in">COUNT</span>(o.id) <span class="keyword">AS</span> order_count,</span><br><span class="line">       IFNULL(<span class="built_in">SUM</span>(o.amount), <span class="number">0</span>) <span class="keyword">AS</span> total_amount</span><br><span class="line"><span class="keyword">FROM</span> users u</span><br><span class="line"><span class="keyword">LEFT</span> <span class="keyword">JOIN</span> orders o <span class="keyword">ON</span> o.user_id <span class="operator">=</span> u.id <span class="keyword">AND</span> o.status <span class="operator">=</span> <span class="string">&#x27;paid&#x27;</span></span><br><span class="line"><span class="keyword">GROUP</span> <span class="keyword">BY</span> u.id, u.username, u.city;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 像查表一样用</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> v_user_consumption <span class="keyword">ORDER</span> <span class="keyword">BY</span> total_amount <span class="keyword">DESC</span> LIMIT <span class="number">10</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="可更新视图与-WITH-CHECK-OPTION"><a href="#可更新视图与-WITH-CHECK-OPTION" class="headerlink" title="可更新视图与 WITH CHECK OPTION"></a>可更新视图与 WITH CHECK OPTION</h3><p>单表、无聚合的视图可以直接 INSERT&#x2F;UPDATE&#x2F;DELETE，加 <code>WITH CHECK OPTION</code> 防止写入不满足视图条件的数据：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">VIEW</span> v_pending_orders <span class="keyword">AS</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> status <span class="operator">=</span> <span class="string">&#x27;pending&#x27;</span></span><br><span class="line"><span class="keyword">WITH</span> <span class="keyword">CHECK</span> OPTION;</span><br><span class="line"></span><br><span class="line"><span class="keyword">UPDATE</span> v_pending_orders <span class="keyword">SET</span> amount <span class="operator">=</span> <span class="number">88</span> <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">5</span>;    <span class="comment">-- 允许</span></span><br><span class="line"><span class="keyword">UPDATE</span> v_pending_orders <span class="keyword">SET</span> status <span class="operator">=</span> <span class="string">&#x27;paid&#x27;</span> <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">5</span>; <span class="comment">-- 报错！违反 CHECK</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="避坑指南：视图的三个真相"><a href="#避坑指南：视图的三个真相" class="headerlink" title="避坑指南：视图的三个真相"></a>避坑指南：视图的三个真相</h3><ol>
+<li><strong>视图不存数据，也没有索引</strong>——每次查询视图都是重新执行底层 SQL。在视图上再叠视图、再套 WHERE，容易让优化器写出糟糕的执行计划（尤其 <code>ALGORITHM=TEMPTABLE</code> 时先全量物化再过滤）</li>
+<li>含聚合 &#x2F; DISTINCT &#x2F; GROUP BY &#x2F; UNION &#x2F; 子查询的视图<strong>不可更新</strong>，别想当然</li>
+<li>底层表结构变更（如删列）后视图会静默失效，查询时才报错。定期用 <code>CHECK TABLE v_user_consumption</code> 体检</li>
+</ol>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 管理与查看</span></span><br><span class="line"><span class="keyword">SHOW</span> <span class="keyword">CREATE</span> <span class="keyword">VIEW</span> v_user_consumption\G</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">OR</span> REPLACE <span class="keyword">VIEW</span> v_user_consumption <span class="keyword">AS</span> ...;   <span class="comment">-- 修改视图</span></span><br><span class="line"><span class="keyword">DROP</span> <span class="keyword">VIEW</span> IF <span class="keyword">EXISTS</span> v_pending_orders;</span><br></pre></td></tr></table></figure>
+
+<h2 id="二、字符串函数"><a href="#二、字符串函数" class="headerlink" title="二、字符串函数"></a>二、字符串函数</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> CONCAT(username, <span class="string">&#x27;@&#x27;</span>, city) <span class="keyword">FROM</span> users;          <span class="comment">-- 拼接（任一参数为 NULL 则结果为 NULL）</span></span><br><span class="line"><span class="keyword">SELECT</span> CONCAT_WS(<span class="string">&#x27;-&#x27;</span>, <span class="string">&#x27;a&#x27;</span>, <span class="keyword">NULL</span>, <span class="string">&#x27;c&#x27;</span>);                  <span class="comment">-- &#x27;a-c&#x27;，跳过 NULL，更稳</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="built_in">SUBSTRING</span>(<span class="string">&#x27;hello world&#x27;</span>, <span class="number">1</span>, <span class="number">5</span>);                  <span class="comment">-- &#x27;hello&#x27;（下标从 1 开始！）</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="keyword">LEFT</span>(<span class="string">&#x27;abcdef&#x27;</span>, <span class="number">3</span>), <span class="keyword">RIGHT</span>(<span class="string">&#x27;abcdef&#x27;</span>, <span class="number">2</span>);           <span class="comment">-- &#x27;abc&#x27;, &#x27;ef&#x27;</span></span><br><span class="line"><span class="keyword">SELECT</span> REPLACE(<span class="string">&#x27;aaa&#x27;</span>, <span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;b&#x27;</span>);                        <span class="comment">-- &#x27;bbb&#x27;</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="built_in">TRIM</span>(<span class="string">&#x27;  x  &#x27;</span>), <span class="built_in">UPPER</span>(<span class="string">&#x27;abc&#x27;</span>), LENGTH(<span class="string">&#x27;中文&#x27;</span>);      <span class="comment">-- LENGTH 返回字节数：6</span></span><br><span class="line"><span class="keyword">SELECT</span> LOCATE(<span class="string">&#x27;world&#x27;</span>, <span class="string">&#x27;hello world&#x27;</span>);                  <span class="comment">-- 7，找不到返回 0</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="GROUP-CONCAT：好用但有截断陷阱"><a href="#GROUP-CONCAT：好用但有截断陷阱" class="headerlink" title="GROUP_CONCAT：好用但有截断陷阱"></a>GROUP_CONCAT：好用但有截断陷阱</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 把每个用户的订单号拼成一行</span></span><br><span class="line"><span class="keyword">SELECT</span> user_id, GROUP_CONCAT(id <span class="keyword">ORDER</span> <span class="keyword">BY</span> id SEPARATOR <span class="string">&#x27;,&#x27;</span>) <span class="keyword">AS</span> order_ids</span><br><span class="line"><span class="keyword">FROM</span> orders</span><br><span class="line"><span class="keyword">GROUP</span> <span class="keyword">BY</span> user_id;</span><br></pre></td></tr></table></figure>
+
+<p><strong>坑</strong>：结果默认最长 1024 字节，超出<strong>静默截断</strong>，数据不知不觉就少了。大结果集先调大：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SET</span> SESSION group_concat_max_len <span class="operator">=</span> <span class="number">102400</span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、日期时间函数"><a href="#三、日期时间函数" class="headerlink" title="三、日期时间函数"></a>三、日期时间函数</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> NOW(), CURDATE(), CURTIME();                     <span class="comment">-- 当前时刻 / 日期 / 时间</span></span><br><span class="line"><span class="keyword">SELECT</span> DATE_FORMAT(NOW(), <span class="string">&#x27;%Y-%m-%d %H:%i&#x27;</span>);            <span class="comment">-- 格式化（%i 是分钟，%m 是月份！）</span></span><br><span class="line"><span class="keyword">SELECT</span> DATEDIFF(<span class="string">&#x27;2026-08-06&#x27;</span>, <span class="string">&#x27;2026-08-01&#x27;</span>);            <span class="comment">-- 5（天）</span></span><br><span class="line"><span class="keyword">SELECT</span> TIMESTAMPDIFF(<span class="keyword">MONTH</span>, <span class="string">&#x27;2026-01-01&#x27;</span>, NOW());       <span class="comment">-- 间隔月数</span></span><br><span class="line"><span class="keyword">SELECT</span> DATE_ADD(NOW(), <span class="type">INTERVAL</span> <span class="number">7</span> <span class="keyword">DAY</span>);                 <span class="comment">-- 7 天后</span></span><br><span class="line"><span class="keyword">SELECT</span> DATE_SUB(NOW(), <span class="type">INTERVAL</span> <span class="number">1</span> <span class="keyword">MONTH</span>);               <span class="comment">-- 1 月前</span></span><br><span class="line"><span class="keyword">SELECT</span> LAST_DAY(NOW());                                 <span class="comment">-- 当月最后一天（月报神器）</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="避坑指南：日期查询的头号性能坑"><a href="#避坑指南：日期查询的头号性能坑" class="headerlink" title="避坑指南：日期查询的头号性能坑"></a>避坑指南：日期查询的头号性能坑</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 错误：对索引列用函数，索引直接报废</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> <span class="type">DATE</span>(created_at) <span class="operator">=</span> <span class="string">&#x27;2026-08-01&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 正确：范围查询，索引可用</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> orders</span><br><span class="line"><span class="keyword">WHERE</span> created_at <span class="operator">&gt;=</span> <span class="string">&#x27;2026-08-01&#x27;</span> <span class="keyword">AND</span> created_at <span class="operator">&lt;</span> <span class="string">&#x27;2026-08-02&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>同理，<code>BETWEEN &#39;2026-08-01&#39; AND &#39;2026-08-31&#39;</code> 查月份容易漏掉 31 号当天的数据（DATETIME 精度问题），<strong>统一用”左闭右开”区间</strong>：<code>&gt;= 月初 AND &lt; 下月初</code>。</p>
+<h2 id="四、聚合函数与-GROUP-BY"><a href="#四、聚合函数与-GROUP-BY" class="headerlink" title="四、聚合函数与 GROUP BY"></a>四、聚合函数与 GROUP BY</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> status,</span><br><span class="line">       <span class="built_in">COUNT</span>(<span class="operator">*</span>) <span class="keyword">AS</span> cnt,</span><br><span class="line">       <span class="built_in">SUM</span>(amount) <span class="keyword">AS</span> total,</span><br><span class="line">       <span class="built_in">AVG</span>(amount) <span class="keyword">AS</span> avg_amount,</span><br><span class="line">       <span class="built_in">MAX</span>(amount) <span class="keyword">AS</span> max_amount</span><br><span class="line"><span class="keyword">FROM</span> orders</span><br><span class="line"><span class="keyword">GROUP</span> <span class="keyword">BY</span> status</span><br><span class="line"><span class="keyword">HAVING</span> cnt <span class="operator">&gt;</span> <span class="number">5</span>          <span class="comment">-- HAVING 过滤聚合结果，WHERE 过滤明细行</span></span><br><span class="line"><span class="keyword">ORDER</span> <span class="keyword">BY</span> total <span class="keyword">DESC</span>;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- WITH ROLLUP：附加一行总计（报表常用）</span></span><br><span class="line"><span class="keyword">SELECT</span> city, <span class="built_in">COUNT</span>(<span class="operator">*</span>) <span class="keyword">AS</span> cnt <span class="keyword">FROM</span> users <span class="keyword">GROUP</span> <span class="keyword">BY</span> city <span class="keyword">WITH</span> <span class="keyword">ROLLUP</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="避坑指南：聚合查询的-NULL-三兄弟"><a href="#避坑指南：聚合查询的-NULL-三兄弟" class="headerlink" title="避坑指南：聚合查询的 NULL 三兄弟"></a>避坑指南：聚合查询的 NULL 三兄弟</h3><ol>
+<li><strong><code>COUNT(列名)</code> 不统计 NULL</strong>，<code>COUNT(*)</code> 统计所有行——结果不一致时先怀疑这个</li>
+<li><strong><code>= NULL</code> 永远是 UNKNOWN</strong>：判空必须 <code>IS NULL</code>；更隐蔽的是 <code>NOT IN (含 NULL 的子查询)</code> 会<strong>返回空集</strong>，这是经典的线上 bug，用 <code>NOT EXISTS</code> 改写</li>
+<li>8.0 默认开启 <code>ONLY_FULL_GROUP_BY</code>：SELECT 里的非聚合列必须出现在 GROUP BY 中，否则报错——别关它，它拦住的都是含糊的 SQL</li>
+</ol>
+<h2 id="五、窗口函数（8-0-重磅特性）"><a href="#五、窗口函数（8-0-重磅特性）" class="headerlink" title="五、窗口函数（8.0 重磅特性）"></a>五、窗口函数（8.0 重磅特性）</h2><p>窗口函数在不折叠行的前提下做”组内计算”，语法：<code>函数() OVER (PARTITION BY 分组 ORDER BY 排序)</code>。</p>
+<h3 id="实战-1：每组取最新-N-条（ROW-NUMBER）"><a href="#实战-1：每组取最新-N-条（ROW-NUMBER）" class="headerlink" title="实战 1：每组取最新 N 条（ROW_NUMBER）"></a>实战 1：每组取最新 N 条（ROW_NUMBER）</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 每个用户最近的 2 笔订单（以前要写相关子查询，又慢又绕）</span></span><br><span class="line"><span class="keyword">SELECT</span> id, user_id, amount, created_at</span><br><span class="line"><span class="keyword">FROM</span> (</span><br><span class="line">  <span class="keyword">SELECT</span> <span class="operator">*</span>,</span><br><span class="line">         <span class="built_in">ROW_NUMBER</span>() <span class="keyword">OVER</span> (<span class="keyword">PARTITION</span> <span class="keyword">BY</span> user_id <span class="keyword">ORDER</span> <span class="keyword">BY</span> created_at <span class="keyword">DESC</span>) <span class="keyword">AS</span> rn</span><br><span class="line">  <span class="keyword">FROM</span> orders</span><br><span class="line">) t</span><br><span class="line"><span class="keyword">WHERE</span> rn <span class="operator">&lt;=</span> <span class="number">2</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="实战-2：排名（RANK-DENSE-RANK）"><a href="#实战-2：排名（RANK-DENSE-RANK）" class="headerlink" title="实战 2：排名（RANK &#x2F; DENSE_RANK）"></a>实战 2：排名（RANK &#x2F; DENSE_RANK）</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 按消费额排名；RANK 并列后跳名次，DENSE_RANK 并列不跳</span></span><br><span class="line"><span class="keyword">SELECT</span> username, total_amount,</span><br><span class="line">       <span class="built_in">RANK</span>()       <span class="keyword">OVER</span> (<span class="keyword">ORDER</span> <span class="keyword">BY</span> total_amount <span class="keyword">DESC</span>) <span class="keyword">AS</span> rnk,</span><br><span class="line">       <span class="built_in">DENSE_RANK</span>() <span class="keyword">OVER</span> (<span class="keyword">ORDER</span> <span class="keyword">BY</span> total_amount <span class="keyword">DESC</span>) <span class="keyword">AS</span> dense_rnk</span><br><span class="line"><span class="keyword">FROM</span> v_user_consumption;</span><br></pre></td></tr></table></figure>
+
+<h3 id="实战-3：环比计算（LAG-LEAD）"><a href="#实战-3：环比计算（LAG-LEAD）" class="headerlink" title="实战 3：环比计算（LAG &#x2F; LEAD）"></a>实战 3：环比计算（LAG &#x2F; LEAD）</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 每日订单额与前一天对比（报表里的&quot;环比&quot;一条 SQL 搞定）</span></span><br><span class="line"><span class="keyword">SELECT</span> dt,</span><br><span class="line">       day_total,</span><br><span class="line">       <span class="built_in">LAG</span>(day_total) <span class="keyword">OVER</span> (<span class="keyword">ORDER</span> <span class="keyword">BY</span> dt) <span class="keyword">AS</span> prev_day,</span><br><span class="line">       ROUND((day_total <span class="operator">-</span> <span class="built_in">LAG</span>(day_total) <span class="keyword">OVER</span> (<span class="keyword">ORDER</span> <span class="keyword">BY</span> dt))</span><br><span class="line">             <span class="operator">/</span> <span class="built_in">NULLIF</span>(<span class="built_in">LAG</span>(day_total) <span class="keyword">OVER</span> (<span class="keyword">ORDER</span> <span class="keyword">BY</span> dt), <span class="number">0</span>) <span class="operator">*</span> <span class="number">100</span>, <span class="number">2</span>) <span class="keyword">AS</span> growth_pct</span><br><span class="line"><span class="keyword">FROM</span> (</span><br><span class="line">  <span class="keyword">SELECT</span> <span class="type">DATE</span>(created_at) <span class="keyword">AS</span> dt, <span class="built_in">SUM</span>(amount) <span class="keyword">AS</span> day_total</span><br><span class="line">  <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> status <span class="operator">=</span> <span class="string">&#x27;paid&#x27;</span></span><br><span class="line">  <span class="keyword">GROUP</span> <span class="keyword">BY</span> <span class="type">DATE</span>(created_at)</span><br><span class="line">) d;</span><br></pre></td></tr></table></figure>
+
+<h3 id="实战-4：累计求和（SUM-OVER）"><a href="#实战-4：累计求和（SUM-OVER）" class="headerlink" title="实战 4：累计求和（SUM OVER）"></a>实战 4：累计求和（SUM OVER）</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 每日累计销售额（移动累计，财务对账常用）</span></span><br><span class="line"><span class="keyword">SELECT</span> dt, day_total,</span><br><span class="line">       <span class="built_in">SUM</span>(day_total) <span class="keyword">OVER</span> (<span class="keyword">ORDER</span> <span class="keyword">BY</span> dt <span class="keyword">ROWS</span> UNBOUNDED PRECEDING) <span class="keyword">AS</span> running_total</span><br><span class="line"><span class="keyword">FROM</span> (</span><br><span class="line">  <span class="keyword">SELECT</span> <span class="type">DATE</span>(created_at) <span class="keyword">AS</span> dt, <span class="built_in">SUM</span>(amount) <span class="keyword">AS</span> day_total</span><br><span class="line">  <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> status <span class="operator">=</span> <span class="string">&#x27;paid&#x27;</span></span><br><span class="line">  <span class="keyword">GROUP</span> <span class="keyword">BY</span> <span class="type">DATE</span>(created_at)</span><br><span class="line">) d;</span><br></pre></td></tr></table></figure>
+
+<p><strong>注意事项</strong>：窗口函数没法直接加索引加速，它的成本在排序上——<code>PARTITION BY</code>&#x2F;<code>ORDER BY</code> 涉及的列有合适索引会明显更快；外层 <code>WHERE rn &lt;= 2</code> 这种过滤发生在窗口计算之后，所以无法提前裁剪数据。</p>
+<h2 id="六、条件与判空函数"><a href="#六、条件与判空函数" class="headerlink" title="六、条件与判空函数"></a>六、条件与判空函数</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> IF(amount <span class="operator">&gt;</span> <span class="number">100</span>, <span class="string">&#x27;大单&#x27;</span>, <span class="string">&#x27;小单&#x27;</span>) <span class="keyword">FROM</span> orders;          <span class="comment">-- 三元判断</span></span><br><span class="line"><span class="keyword">SELECT</span> IFNULL(<span class="keyword">NULL</span>, <span class="string">&#x27;默认值&#x27;</span>);                                 <span class="comment">-- NULL 替换</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="built_in">COALESCE</span>(<span class="keyword">NULL</span>, <span class="keyword">NULL</span>, <span class="string">&#x27;第一个非NULL&#x27;</span>);                    <span class="comment">-- 多参数版 IFNULL</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- CASE 表达式：行转列报表的核心</span></span><br><span class="line"><span class="keyword">SELECT</span> user_id,</span><br><span class="line">       <span class="built_in">SUM</span>(<span class="keyword">CASE</span> <span class="keyword">WHEN</span> status <span class="operator">=</span> <span class="string">&#x27;paid&#x27;</span> <span class="keyword">THEN</span> amount <span class="keyword">ELSE</span> <span class="number">0</span> <span class="keyword">END</span>) <span class="keyword">AS</span> paid_amount,</span><br><span class="line">       <span class="built_in">SUM</span>(<span class="keyword">CASE</span> <span class="keyword">WHEN</span> status <span class="operator">=</span> <span class="string">&#x27;pending&#x27;</span> <span class="keyword">THEN</span> amount <span class="keyword">ELSE</span> <span class="number">0</span> <span class="keyword">END</span>) <span class="keyword">AS</span> pending_amount</span><br><span class="line"><span class="keyword">FROM</span> orders</span><br><span class="line"><span class="keyword">GROUP</span> <span class="keyword">BY</span> user_id;</span><br></pre></td></tr></table></figure>
+
+<p>防除零用 <code>NULLIF</code>：<code>SELECT total / NULLIF(cnt, 0) FROM t;</code>（除数为 0 时返回 NULL 而不是报错）。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul>
+<li>视图用来<strong>封装复杂 SQL、收口权限</strong>（只暴露视图不给基表），别指望它提速</li>
+<li>字符串&#x2F;日期函数用在 SELECT 里随便用，用在 WHERE 的索引列上三思</li>
+<li>聚合查询盯紧 NULL 的三个坑；窗口函数优先掌握 <code>ROW_NUMBER</code>（每组取 N）、<code>LAG</code>（环比）、<code>SUM OVER</code>（累计）三个场景</li>
+</ul>
+<p>下一篇终章<a href="/2026/08/15377b3c/">《性能分析与 SQL 调优》</a>：慢查询日志、EXPLAIN 逐列解读、索引失效的 N 种姿势、锁等待分析——把前三篇埋的性能伏笔全部回收。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://lz1219.github.io">lz9527</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://lz1219.github.io/2026/08/eb26afd2/">https://lz1219.github.io/2026/08/eb26afd2/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://lz1219.github.io" target="_blank">lz9527</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/MySQL/">MySQL</a><a class="post-meta__tags" href="/tags/SQL/">SQL</a><a class="post-meta__tags" href="/tags/%E8%A7%86%E5%9B%BE/">视图</a><a class="post-meta__tags" href="/tags/%E7%AA%97%E5%8F%A3%E5%87%BD%E6%95%B0/">窗口函数</a></div><div class="post-share"><div class="social-share" data-image="/config/img/post/database-cover.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="/pluginsSrc/butterfly-extsrc/sharejs/dist/css/share.min.css?v=1.1.6" media="print" onload="this.media='all'"><script src="/pluginsSrc/butterfly-extsrc/sharejs/dist/js/social-share.min.js?v=1.1.6" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/08/15377b3c/" title="MySQL 实战手册（四）：性能分析与 SQL 调优"><img class="cover" src="/config/img/post/database-cover.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">MySQL 实战手册（四）：性能分析与 SQL 调优</div></div><div class="info-2"><div class="info-item-1">MySQL 实战手册（四）：性能分析与 SQL 调优系列终篇。调优的第一原则：先测量，再优化。本篇不讲玄学经验，按”发现问题 → 解读执行计划 → 优化索引与 SQL → 排查锁”的实战顺序展开，每一步都给出可执行的命令。演示数据用第二篇 GenOrders(10000) 生成的 1 万条订单。  系列目录：一、基础命令与日常管理 ｜ 二、存储过程与自定义函数 ｜ 三、视图与常用函数精讲 ｜ 四、性能分析与 SQL 调优  一、慢查询日志：问题 SQL 的入口12345-- 开启慢查询日志（生产建议长期开着，开销极小）SET GLOBAL slow_query_log = ON;SET GLOBAL long_query_time = 0.5;             -- 阈值秒数，按业务容忍度调SET GLOBAL log_queries_not_using_indexes = ON; -- 没走索引的查询也记录（不论快慢）SHOW VARIABLES LIKE &#x27;slow_query_log_file&#x27;;     -- 日志文件位置  日志文件逐条看效率...</div></div></div></a><a class="pagination-related" href="/2026/08/bf824c0b/" title="MySQL 实战手册（二）：存储过程与自定义函数"><img class="cover" src="/config/img/post/database-cover.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">MySQL 实战手册（二）：存储过程与自定义函数</div></div><div class="info-2"><div class="info-item-1">MySQL 实战手册（二）：存储过程与自定义函数系列第二篇，讲数据库端编程。存储过程和函数适合把多步数据操作封装在数据库内执行（减少网络往返、保证原子性），但用不好就是性能和可维护性的双重灾难。本篇沿用第一篇的 shop 库。  系列目录：一、基础命令与日常管理 ｜ 二、存储过程与自定义函数 ｜ 三、视图与常用函数精讲 ｜ 四、性能分析与 SQL 调优  一、存储过程基础语法MySQL 用 DELIMITER 临时修改语句结束符，避免过程体里的 ; 被当成结束： 1234567891011121314DELIMITER $$CREATE PROCEDURE GetUserOrders(IN p_user_id BIGINT UNSIGNED)BEGIN  SELECT id, amount, status, created_at  FROM orders  WHERE user_id = p_user_id  ORDER BY created_at DESC;END$$DELIMITER ;-- 调用CALL GetUserOrders(1);  三种参数模式   模式 作用 类...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/08/bf824c0b/" title="MySQL 实战手册（二）：存储过程与自定义函数"><img class="cover" src="/config/img/post/database-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-06</div><div class="info-item-2">MySQL 实战手册（二）：存储过程与自定义函数</div></div><div class="info-2"><div class="info-item-1">MySQL 实战手册（二）：存储过程与自定义函数系列第二篇，讲数据库端编程。存储过程和函数适合把多步数据操作封装在数据库内执行（减少网络往返、保证原子性），但用不好就是性能和可维护性的双重灾难。本篇沿用第一篇的 shop 库。  系列目录：一、基础命令与日常管理 ｜ 二、存储过程与自定义函数 ｜ 三、视图与常用函数精讲 ｜ 四、性能分析与 SQL 调优  一、存储过程基础语法MySQL 用 DELIMITER 临时修改语句结束符，避免过程体里的 ; 被当成结束： 1234567891011121314DELIMITER $$CREATE PROCEDURE GetUserOrders(IN p_user_id BIGINT UNSIGNED)BEGIN  SELECT id, amount, status, created_at  FROM orders  WHERE user_id = p_user_id  ORDER BY created_at DESC;END$$DELIMITER ;-- 调用CALL GetUserOrders(1);  三种参数模式   模式 作用 类...</div></div></div></a><a class="pagination-related" href="/2026/08/df0776fa/" title="MySQL 实战手册（一）：基础命令与日常管理"><img class="cover" src="/config/img/post/database-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-06</div><div class="info-item-2">MySQL 实战手册（一）：基础命令与日常管理</div></div><div class="info-2"><div class="info-item-1">MySQL 实战手册（一）：基础命令与日常管理这是 MySQL 实战手册系列的第一篇，面向日常开发与运维场景。全系列基于 MySQL 8.0，共用同一个演示库 shop，示例均可直接复制执行。  系列目录：一、基础命令与日常管理 ｜ 二、存储过程与自定义函数 ｜ 三、视图与常用函数精讲 ｜ 四、性能分析与 SQL 调优  〇、准备演示环境123456789101112131415161718192021222324CREATE DATABASE shop DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;USE shop;CREATE TABLE users (  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,  username VARCHAR(64) NOT NULL UNIQUE,  city VARCHAR(32) NOT NULL DEFAULT &#x27;&#x27;,  created_at DATETIME NOT NULL DEFAULT CURREN...</div></div></div></a><a class="pagination-related" href="/2026/08/15377b3c/" title="MySQL 实战手册（四）：性能分析与 SQL 调优"><img class="cover" src="/config/img/post/database-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-06</div><div class="info-item-2">MySQL 实战手册（四）：性能分析与 SQL 调优</div></div><div class="info-2"><div class="info-item-1">MySQL 实战手册（四）：性能分析与 SQL 调优系列终篇。调优的第一原则：先测量，再优化。本篇不讲玄学经验，按”发现问题 → 解读执行计划 → 优化索引与 SQL → 排查锁”的实战顺序展开，每一步都给出可执行的命令。演示数据用第二篇 GenOrders(10000) 生成的 1 万条订单。  系列目录：一、基础命令与日常管理 ｜ 二、存储过程与自定义函数 ｜ 三、视图与常用函数精讲 ｜ 四、性能分析与 SQL 调优  一、慢查询日志：问题 SQL 的入口12345-- 开启慢查询日志（生产建议长期开着，开销极小）SET GLOBAL slow_query_log = ON;SET GLOBAL long_query_time = 0.5;             -- 阈值秒数，按业务容忍度调SET GLOBAL log_queries_not_using_indexes = ON; -- 没走索引的查询也记录（不论快慢）SHOW VARIABLES LIKE &#x27;slow_query_log_file&#x27;;     -- 日志文件位置  日志文件逐条看效率...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/config/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">lz9527</div><div class="author-info-description">人生如逆旅，我亦是行人</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">18</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">32</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">5</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/lz1219" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:814028419@qq.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">啦啦啦啦~~~</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#MySQL-%E5%AE%9E%E6%88%98%E6%89%8B%E5%86%8C%EF%BC%88%E4%B8%89%EF%BC%89%EF%BC%9A%E8%A7%86%E5%9B%BE%E4%B8%8E%E5%B8%B8%E7%94%A8%E5%87%BD%E6%95%B0%E7%B2%BE%E8%AE%B2"><span class="toc-number">1.</span> <span class="toc-text">MySQL 实战手册（三）：视图与常用函数精讲</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E8%A7%86%E5%9B%BE%EF%BC%9A%E5%B0%81%E8%A3%85%E8%80%8C%E4%B8%8D%E6%98%AF%E5%AD%98%E5%82%A8"><span class="toc-number">1.1.</span> <span class="toc-text">一、视图：封装而不是存储</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%9B%E5%BB%BA%E4%B8%8E%E4%BD%BF%E7%94%A8"><span class="toc-number">1.1.1.</span> <span class="toc-text">创建与使用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%AF%E6%9B%B4%E6%96%B0%E8%A7%86%E5%9B%BE%E4%B8%8E-WITH-CHECK-OPTION"><span class="toc-number">1.1.2.</span> <span class="toc-text">可更新视图与 WITH CHECK OPTION</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%81%BF%E5%9D%91%E6%8C%87%E5%8D%97%EF%BC%9A%E8%A7%86%E5%9B%BE%E7%9A%84%E4%B8%89%E4%B8%AA%E7%9C%9F%E7%9B%B8"><span class="toc-number">1.1.3.</span> <span class="toc-text">避坑指南：视图的三个真相</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%87%BD%E6%95%B0"><span class="toc-number">1.2.</span> <span class="toc-text">二、字符串函数</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#GROUP-CONCAT%EF%BC%9A%E5%A5%BD%E7%94%A8%E4%BD%86%E6%9C%89%E6%88%AA%E6%96%AD%E9%99%B7%E9%98%B1"><span class="toc-number">1.2.1.</span> <span class="toc-text">GROUP_CONCAT：好用但有截断陷阱</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E6%97%A5%E6%9C%9F%E6%97%B6%E9%97%B4%E5%87%BD%E6%95%B0"><span class="toc-number">1.3.</span> <span class="toc-text">三、日期时间函数</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%81%BF%E5%9D%91%E6%8C%87%E5%8D%97%EF%BC%9A%E6%97%A5%E6%9C%9F%E6%9F%A5%E8%AF%A2%E7%9A%84%E5%A4%B4%E5%8F%B7%E6%80%A7%E8%83%BD%E5%9D%91"><span class="toc-number">1.3.1.</span> <span class="toc-text">避坑指南：日期查询的头号性能坑</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E8%81%9A%E5%90%88%E5%87%BD%E6%95%B0%E4%B8%8E-GROUP-BY"><span class="toc-number">1.4.</span> <span class="toc-text">四、聚合函数与 GROUP BY</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%81%BF%E5%9D%91%E6%8C%87%E5%8D%97%EF%BC%9A%E8%81%9A%E5%90%88%E6%9F%A5%E8%AF%A2%E7%9A%84-NULL-%E4%B8%89%E5%85%84%E5%BC%9F"><span class="toc-number">1.4.1.</span> <span class="toc-text">避坑指南：聚合查询的 NULL 三兄弟</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E7%AA%97%E5%8F%A3%E5%87%BD%E6%95%B0%EF%BC%888-0-%E9%87%8D%E7%A3%85%E7%89%B9%E6%80%A7%EF%BC%89"><span class="toc-number">1.5.</span> <span class="toc-text">五、窗口函数（8.0 重磅特性）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E6%88%98-1%EF%BC%9A%E6%AF%8F%E7%BB%84%E5%8F%96%E6%9C%80%E6%96%B0-N-%E6%9D%A1%EF%BC%88ROW-NUMBER%EF%BC%89"><span class="toc-number">1.5.1.</span> <span class="toc-text">实战 1：每组取最新 N 条（ROW_NUMBER）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E6%88%98-2%EF%BC%9A%E6%8E%92%E5%90%8D%EF%BC%88RANK-DENSE-RANK%EF%BC%89"><span class="toc-number">1.5.2.</span> <span class="toc-text">实战 2：排名（RANK &#x2F; DENSE_RANK）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E6%88%98-3%EF%BC%9A%E7%8E%AF%E6%AF%94%E8%AE%A1%E7%AE%97%EF%BC%88LAG-LEAD%EF%BC%89"><span class="toc-number">1.5.3.</span> <span class="toc-text">实战 3：环比计算（LAG &#x2F; LEAD）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E6%88%98-4%EF%BC%9A%E7%B4%AF%E8%AE%A1%E6%B1%82%E5%92%8C%EF%BC%88SUM-OVER%EF%BC%89"><span class="toc-number">1.5.4.</span> <span class="toc-text">实战 4：累计求和（SUM OVER）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E6%9D%A1%E4%BB%B6%E4%B8%8E%E5%88%A4%E7%A9%BA%E5%87%BD%E6%95%B0"><span class="toc-number">1.6.</span> <span class="toc-text">六、条件与判空函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.7.</span> <span class="toc-text">总结</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/08/15377b3c/" title="MySQL 实战手册（四）：性能分析与 SQL 调优"><img src="/config/img/post/database-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="MySQL 实战手册（四）：性能分析与 SQL 调优"/></a><div class="content"><a class="title" href="/2026/08/15377b3c/" title="MySQL 实战手册（四）：性能分析与 SQL 调优">MySQL 实战手册（四）：性能分析与 SQL 调优</a><time datetime="2026-08-06T08:21:28.000Z" title="发表于 2026-08-06 16:21:28">2026-08-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/eb26afd2/" title="MySQL 实战手册（三）：视图与常用函数精讲"><img src="/config/img/post/database-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="MySQL 实战手册（三）：视图与常用函数精讲"/></a><div class="content"><a class="title" href="/2026/08/eb26afd2/" title="MySQL 实战手册（三）：视图与常用函数精讲">MySQL 实战手册（三）：视图与常用函数精讲</a><time datetime="2026-08-06T08:21:27.000Z" title="发表于 2026-08-06 16:21:27">2026-08-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/bf824c0b/" title="MySQL 实战手册（二）：存储过程与自定义函数"><img src="/config/img/post/database-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="MySQL 实战手册（二）：存储过程与自定义函数"/></a><div class="content"><a class="title" href="/2026/08/bf824c0b/" title="MySQL 实战手册（二）：存储过程与自定义函数">MySQL 实战手册（二）：存储过程与自定义函数</a><time datetime="2026-08-06T08:21:26.000Z" title="发表于 2026-08-06 16:21:26">2026-08-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/df0776fa/" title="MySQL 实战手册（一）：基础命令与日常管理"><img src="/config/img/post/database-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="MySQL 实战手册（一）：基础命令与日常管理"/></a><div class="content"><a class="title" href="/2026/08/df0776fa/" title="MySQL 实战手册（一）：基础命令与日常管理">MySQL 实战手册（一）：基础命令与日常管理</a><time datetime="2026-08-06T08:21:25.000Z" title="发表于 2026-08-06 16:21:25">2026-08-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/74fb6452/" title="Kubernetes 核心概念与常用命令总结"><img src="/config/img/post/tech-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Kubernetes 核心概念与常用命令总结"/></a><div class="content"><a class="title" href="/2026/08/74fb6452/" title="Kubernetes 核心概念与常用命令总结">Kubernetes 核心概念与常用命令总结</a><time datetime="2026-08-06T05:39:28.000Z" title="发表于 2026-08-06 13:39:28">2026-08-06</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By lz9527</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.7.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.7.0"></script><script src="/js/main.js?v=5.7.0"></script><div class="js-pjax"><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getGiscusTheme = theme => theme === 'dark' ? 'dark' : 'light'
+
+  const createScriptElement = config => {
+    const ele = document.createElement('script')
+    Object.entries(config).forEach(([key, value]) => {
+      ele.setAttribute(key, value)
+    })
+    return ele
+  }
+
+  const loadGiscus = (el = document, key) => {
+    const mappingConfig = isShuoshuo
+      ? { 'data-mapping': 'specific', 'data-term': key }
+      : { 'data-mapping': (option && option['data-mapping']) || 'pathname' }
+
+    const giscusConfig = {
+      src: 'https://giscus.app/client.js',
+      'data-repo': 'lz1219/lz1219.github.io',
+      'data-repo-id': 'R_kgDOLF89GQ',
+      'data-category-id': 'DIC_kwDOLF89Gc4DCxq0',
+      'data-theme': getGiscusTheme(document.documentElement.getAttribute('data-theme')),
+      'data-reactions-enabled': '1',
+      crossorigin: 'anonymous',
+      async: true,
+      ...option,
+      ...mappingConfig
+    }
+
+    const scriptElement = createScriptElement(giscusConfig)
+
+    el.querySelector('#giscus-wrap').appendChild(scriptElement)
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyGiscus = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+  }
+
+  const changeGiscusTheme = theme => {
+    const iframe = document.querySelector('#giscus-wrap iframe')
+    if (iframe) {
+      const message = {
+        giscus: {
+          setConfig: {
+            theme: getGiscusTheme(theme)
+          }
+        }
+      }
+      iframe.contentWindow.postMessage(message, 'https://giscus.app')
+    }
+  }
+
+  btf.addGlobalFn('themeChange', changeGiscusTheme, 'giscus')
+
+  if (isShuoshuo) {
+    'Giscus' === 'Giscus'
+      ? window.shuoshuoComment = { loadComment: loadGiscus }
+      : window.loadOtherComment = loadGiscus
+    return
+  }
+
+  if ('Giscus' === 'Giscus' || !true) {
+    if (true) btf.loadComment(document.getElementById('giscus-wrap'), loadGiscus)
+    else loadGiscus()
+  } else {
+    window.loadOtherComment = loadGiscus
+  }
+})()</script></div><canvas class="fireworks" mobile="false"></canvas><script src="/pluginsSrc/butterfly-extsrc/dist/fireworks.min.js?v=1.1.6"></script><script defer="defer" id="fluttering_ribbon" mobile="false" src="/pluginsSrc/butterfly-extsrc/dist/canvas-fluttering-ribbon.min.js?v=1.1.6"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.7.0"></script></div></div></body></html>
