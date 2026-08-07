@@ -1,0 +1,447 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战 | lz9527</title><meta name="author" content="lz9527"><meta name="copyright" content="lz9527"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="从 docker compose up -d 不拉新 latest 的坑讲起，拆解 pull&#x2F;--pull always&#x2F;pull_policy 三种解决方案，深入 Image ID、tag、digest 三者的关系与镜像版本比较的正确姿势，附生产部署建议">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战">
+<meta property="og:url" content="https://lz1219.github.io/2026/08/159b126e/index.html">
+<meta property="og:site_name" content="lz9527">
+<meta property="og:description" content="从 docker compose up -d 不拉新 latest 的坑讲起，拆解 pull&#x2F;--pull always&#x2F;pull_policy 三种解决方案，深入 Image ID、tag、digest 三者的关系与镜像版本比较的正确姿势，附生产部署建议">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lz1219.github.io/config/img/post/tech-cover.jpg">
+<meta property="article:published_time" content="2026-08-07T05:58:46.000Z">
+<meta property="article:modified_time" content="2026-08-07T06:08:14.252Z">
+<meta property="article:author" content="lz9527">
+<meta property="article:tag" content="Docker">
+<meta property="article:tag" content="Docker Compose">
+<meta property="article:tag" content="运维">
+<meta property="article:tag" content="镜像">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lz1219.github.io/config/img/post/tech-cover.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战",
+  "url": "https://lz1219.github.io/2026/08/159b126e/",
+  "image": "https://lz1219.github.io/config/img/post/tech-cover.jpg",
+  "datePublished": "2026-08-07T05:58:46.000Z",
+  "dateModified": "2026-08-07T06:08:14.252Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "lz9527",
+      "url": "https://lz1219.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://lz1219.github.io/2026/08/159b126e/index.html"><link rel="preconnect"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.7.0"><link rel="stylesheet" href="/pluginsSrc/@fortawesome/fontawesome-free/css/all.min.css?v=7.3.1"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+
+    const scriptCache = new Map()
+    const cssCache = new Map()
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      const activateDarkMode = () => {
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: '/pluginsSrc/@egjs/infinitegrid/dist/infinitegrid.min.js?v=4.13.0',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/config/css/mycolor.css"><meta name="generator" content="Hexo 8.1.2"><link rel="alternate" href="/atom.xml" title="lz9527" type="application/atom+xml">
+</head><body><div class="bg-animation" id="web_bg" style="background-color: #efefef;"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/config/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">20</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">37</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">5</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fa fa-heartbeat"></i><span> 清单</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 读书</span></a></li><li><a class="site-page child" href="/songs/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/config/img/post/tech-cover.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">lz9527</span></a><a class="nav-page-title" href="/"><span class="site-name">Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fa fa-heartbeat"></i><span> 清单</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 读书</span></a></li><li><a class="site-page child" href="/songs/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-08-07T05:58:46.000Z" title="发表于 2026-08-07 13:58:46">2026-08-07</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-08-07T06:08:14.252Z" title="更新于 2026-08-07 14:08:14">2026-08-07</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%8A%80%E6%9C%AF/">技术</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="Docker-镜像版本与更新策略：tag、digest-与-Compose-拉取实战"><a href="#Docker-镜像版本与更新策略：tag、digest-与-Compose-拉取实战" class="headerlink" title="Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战"></a>Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战</h1><p>两个实际中高频遇到的问题：远程仓库更新了 <code>myapp:latest</code>，本地 <code>docker compose up -d</code> 却还在跑旧镜像；两个 tag <code>myapp:v1.0</code> 和 <code>myapp:v1.1</code>，怎么判断哪个内容更新、两个镜像内容是否完全一致。这两个问题背后是同一套知识：<strong>镜像的版本身份到底由什么决定</strong>。本文从实战命令讲到底层原理。</p>
+<h2 id="一、为什么-up-d-不拉新镜像"><a href="#一、为什么-up-d-不拉新镜像" class="headerlink" title="一、为什么 up -d 不拉新镜像"></a>一、为什么 up -d 不拉新镜像</h2><p>先看清 Docker Compose 的行为逻辑：<code>up -d</code> 只检查<strong>本地</strong>是否存在 compose.yml 里指定的镜像——存在就直接用，不存在才拉取。它<strong>不会主动比对本地镜像和远端镜像是否一致</strong>。</p>
+<p>而 <code>latest</code> 这类可变 tag 只是仓库里的一个”指针”，远端推了新镜像后指针移动了，本地旧镜像却纹丝不动。于是出现了”本地 latest ≠ 远端 latest”的经典错位。</p>
+<h2 id="二、三种正确的拉取姿势"><a href="#二、三种正确的拉取姿势" class="headerlink" title="二、三种正确的拉取姿势"></a>二、三种正确的拉取姿势</h2><h3 id="方案一：pull-up（显式两步，最稳）"><a href="#方案一：pull-up（显式两步，最稳）" class="headerlink" title="方案一：pull + up（显式两步，最稳）"></a>方案一：pull + up（显式两步，最稳）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker compose pull &amp;&amp; docker compose up -d</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么这能保证更新？</strong> 拆开看两步各自的作用：</p>
+<ol>
+<li><code>docker compose pull</code>：向仓库查询 tag 当前指向的 digest，与本地不一致就拉取，<strong>本地 tag 指针随之更新</strong></li>
+<li><code>docker compose up -d</code>：检测到容器当前使用的镜像 ID 与 compose 解析到的镜像 ID 不一致，<strong>自动重建容器</strong></li>
+</ol>
+<p>所以只要 pull 成功拿到了新镜像，up 就一定会重建——这个组合是可以保证更新的。反过来，如果 pull 发现远端没变化，up 检测到无变化就什么都不动，也不会无故重启服务，行为刚刚好。</p>
+<h3 id="方案二：up-时直接带-–pull（较新版本-Compose）"><a href="#方案二：up-时直接带-–pull（较新版本-Compose）" class="headerlink" title="方案二：up 时直接带 –pull（较新版本 Compose）"></a>方案二：up 时直接带 –pull（较新版本 Compose）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker compose up -d --pull always</span><br></pre></td></tr></table></figure>
+
+<p><code>--pull</code> 在 up 阶段控制拉取策略，三个取值：</p>
+<table>
+<thead>
+<tr>
+<th>取值</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>always</code></td>
+<td>每次 up 都先尝试拉取最新镜像（等价于自动执行了方案一的第一步）</td>
+</tr>
+<tr>
+<td><code>missing</code>（默认）</td>
+<td>仅本地没有时才拉取——这就是”不更新”的默认行为</td>
+</tr>
+<tr>
+<td><code>never</code></td>
+<td>从不拉取，只用本地镜像</td>
+</tr>
+</tbody></table>
+<p>使用前确认你的 Compose 版本支持：<code>docker compose version</code>，以及 <code>docker compose up --help</code> 里能看到 <code>--pull</code> 参数（Docker Compose v2 的较新版本支持，老版本请用方案一或升级）。</p>
+<h3 id="方案三：写进-compose-yml（配置固化）"><a href="#方案三：写进-compose-yml（配置固化）" class="headerlink" title="方案三：写进 compose.yml（配置固化）"></a>方案三：写进 compose.yml（配置固化）</h3><p>不想每次记参数，就在服务定义里声明 <code>pull_policy</code>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">services:</span></span><br><span class="line">  <span class="attr">app:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">registry.example.com/myapp:latest</span></span><br><span class="line">    <span class="attr">pull_policy:</span> <span class="string">always</span>        <span class="comment"># 每次 up 都拉取</span></span><br></pre></td></tr></table></figure>
+
+<p>三种方案的选择：<strong>临时操作用 <code>--pull always</code>，长期行为固化到 <code>pull_policy</code>，脚本&#x2F;CI 里用 <code>pull &amp;&amp; up</code> 组合</strong>（退出码语义最清晰，pull 失败可以及时中止不启动）。</p>
+<h3 id="避坑指南：三个容易混淆的点"><a href="#避坑指南：三个容易混淆的点" class="headerlink" title="避坑指南：三个容易混淆的点"></a>避坑指南：三个容易混淆的点</h3><ol>
+<li><strong><code>--force-recreate</code> 只重建容器，不拉镜像</strong>——它解决的是”配置没变也想重启”，和镜像更新完全是两回事</li>
+<li><code>docker compose restart</code> 同理，只是重启现有容器，镜像、配置变化都不感知</li>
+<li>本地 <code>build</code> 的镜像（compose 里有 <code>build:</code> 段）不受 pull 策略影响——那种情况用 <code>docker compose up -d --build</code> 强制重建镜像</li>
+</ol>
+<h2 id="三、常用命令到底干了什么（原理解剖）"><a href="#三、常用命令到底干了什么（原理解剖）" class="headerlink" title="三、常用命令到底干了什么（原理解剖）"></a>三、常用命令到底干了什么（原理解剖）</h2><p>理解命令背后的机制，才能预判它的行为。先补一个底层概念，再逐个解剖。</p>
+<h3 id="铺垫：镜像是分层的，容器是”镜像-可写层”"><a href="#铺垫：镜像是分层的，容器是”镜像-可写层”" class="headerlink" title="铺垫：镜像是分层的，容器是”镜像 + 可写层”"></a>铺垫：镜像是分层的，容器是”镜像 + 可写层”</h3><p>Docker 镜像由一组<strong>只读层（layer）<strong>叠成，每层是上一层之上的文件变更集。启动容器时，Docker 用 overlay2 联合文件系统把所有只读层挂载合并，再在最上面盖一层</strong>可写层（container layer）</strong>：</p>
+<ul>
+<li>容器里看到的完整文件系统 &#x3D; 只读镜像层（共享）+ 顶部可写层（私有）</li>
+<li>容器内改文件 &#x3D; 写时复制（copy-on-write）：把镜像层的文件复制到可写层再改，原镜像层不动</li>
+<li><strong>这就是”删容器数据就没了”的原因</strong>——可写层随容器删除，镜像层还在（也是数据卷存在的意义）</li>
+</ul>
+<p>多个容器跑同一镜像时，只读层完全共享，100 个容器也只占一份镜像空间。</p>
+<h3 id="docker-pull：不是”下载一个镜像”，是按层取差量"><a href="#docker-pull：不是”下载一个镜像”，是按层取差量" class="headerlink" title="docker pull：不是”下载一个镜像”，是按层取差量"></a>docker pull：不是”下载一个镜像”，是按层取差量</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull myapp:latest</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>向仓库请求 <code>latest</code> 指向的 <strong>manifest</strong>，拿到 digest 和所有层的摘要列表</li>
+<li>逐层检查本地是否已有该层（按层 digest 判断）——<strong>已有的层直接跳过</strong>，这就是”Already exists”那几行</li>
+<li>只下载缺失的层，解压组装</li>
+<li>本地 tag 指针更新到新 manifest</li>
+</ol>
+<p>所以 pull 是<strong>差量更新</strong>：新版本只改了两层，就只下载两层。这也是为什么镜像个头几 GB、更新往往只有几十 MB。</p>
+<h3 id="docker-run：一条命令-create-start"><a href="#docker-run：一条命令-create-start" class="headerlink" title="docker run：一条命令 &#x3D; create + start"></a>docker run：一条命令 &#x3D; create + start</h3><p><code>docker run</code> 实际做了两件事：<code>docker create</code>（基于镜像造出容器：分配可写层、网络、环境变量）+ <code>docker start</code>（启动入口进程）。</p>
+<p>关键认知：<strong>容器的本质是宿主机上的一个进程</strong>（靠 namespace 隔离视图、cgroups 限制资源），入口进程（PID 1）退出 &#x3D; 容器退出。<code>--restart unless-stopped</code> 这类策略就是 Docker 守护进程在容器退出后自动重新拉起。</p>
+<h3 id="docker-build：逐指令生成层，缓存按指令链判断"><a href="#docker-build：逐指令生成层，缓存按指令链判断" class="headerlink" title="docker build：逐指令生成层，缓存按指令链判断"></a>docker build：逐指令生成层，缓存按指令链判断</h3><p>每条 Dockerfile 指令产生一层。构建缓存的判断逻辑：<strong>从第一条指令开始，只要某条指令的内容（包括 COPY 的文件内容哈希）和上次一致，就复用该层及其所有父层</strong>；一旦某层缓存失效，后面所有层全部重建。</p>
+<p>这就是为什么”依赖安装放前面、代码 COPY 放最后”——代码天天变，让它排在最后，前面的依赖层才能稳定命中缓存。</p>
+<h3 id="docker-exec：在容器的-namespace-里开新进程"><a href="#docker-exec：在容器的-namespace-里开新进程" class="headerlink" title="docker exec：在容器的 namespace 里开新进程"></a>docker exec：在容器的 namespace 里开新进程</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -it myapp bash</span><br></pre></td></tr></table></figure>
+
+<p>不是”登录进容器”（容器里没有 SSH），而是 Docker 通过 <code>setns</code> 把新进程（bash）<strong>塞进容器的 namespace</strong>，于是它看到和容器主进程相同的文件系统、网络、进程空间。主进程挂了，exec 的 shell 也随之消失。</p>
+<h3 id="docker-stop-与-docker-kill：信号的区别"><a href="#docker-stop-与-docker-kill：信号的区别" class="headerlink" title="docker stop 与 docker kill：信号的区别"></a>docker stop 与 docker kill：信号的区别</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker stop myapp    <span class="comment"># 先 SIGTERM，等 10 秒（-t 可调）还没退再 SIGKILL</span></span><br><span class="line">docker <span class="built_in">kill</span> myapp    <span class="comment"># 直接 SIGKILL，立刻死</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>应用收不到 SIGTERM 就无法优雅停机</strong>（断连、刷盘）。常见坑：用 <code>sh -c</code> 或 shell 脚本包一层启动应用时，信号被 shell 截获传不到应用——Dockerfile 里 <code>ENTRYPOINT</code> 用 exec 数组形式（<code>[&quot;java&quot;, &quot;-jar&quot;, ...]</code>）才能让应用直接当 PID 1 收信号。</p>
+<h3 id="docker-logs：读的是容器主进程的-stdout-stderr"><a href="#docker-logs：读的是容器主进程的-stdout-stderr" class="headerlink" title="docker logs：读的是容器主进程的 stdout&#x2F;stderr"></a>docker logs：读的是容器主进程的 stdout&#x2F;stderr</h3><p>Docker 默认用 json-file 日志驱动，把容器 PID 1 的标准输出&#x2F;错误落盘成 JSON 文件，<code>docker logs</code> 就是读这个文件。两个推论：</p>
+<ul>
+<li>应用日志<strong>写文件而不是打 stdout 的，docker logs 什么都看不到</strong>——这是容器日志设计的第一原则</li>
+<li>长期不清理会撑爆磁盘：生产配置 <code>log-opts max-size=10m max-file=3</code></li>
+</ul>
+<h3 id="docker-compose-up：一次完整的编排流程"><a href="#docker-compose-up：一次完整的编排流程" class="headerlink" title="docker compose up：一次完整的编排流程"></a>docker compose up：一次完整的编排流程</h3><p><code>docker compose up -d</code> 背后做了一连串事：</p>
+<ol>
+<li>解析 compose.yml，构建项目模型（服务、网络、卷、依赖顺序）</li>
+<li>创建项目级<strong>网络</strong>（不存在才建）和<strong>命名卷</strong></li>
+<li>对每个服务解析镜像（受 pull_policy&#x2F;–pull 控制是否先拉取）</li>
+<li>逐个服务<strong>比对</strong>现有容器与期望状态：镜像 ID、环境变量、端口、卷、重启策略等有任何差异 → 停掉旧容器重建；无差异 → 保持不动（这就是”幂等”）</li>
+<li>按 <code>depends_on</code> 顺序启动容器，后台化（-d）后打印各容器状态</li>
+</ol>
+<p>理解了第 4 步，就理解了为什么改 compose.yml 后 up 会自动重建、什么都没改时 up 秒回”什么都不做”。</p>
+<h3 id="docker-compose-down：清场清单"><a href="#docker-compose-down：清场清单" class="headerlink" title="docker compose down：清场清单"></a>docker compose down：清场清单</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker compose down          <span class="comment"># 停掉并删除：所有容器 + 项目网络</span></span><br><span class="line">docker compose down -v       <span class="comment"># 追加删除：compose 里声明的命名卷（数据销毁，慎用）</span></span><br><span class="line">docker compose down --rmi all  <span class="comment"># 追加删除：项目用到的本地镜像</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>不会动的</strong>：镜像（默认）、bind mount 的宿主目录、外部创建的 volume。删容器丢数据、删卷毁数据的区别就在这里。</p>
+<h3 id="docker-compose-ps-logs：面向项目的视图"><a href="#docker-compose-ps-logs：面向项目的视图" class="headerlink" title="docker compose ps &#x2F; logs：面向项目的视图"></a>docker compose ps &#x2F; logs：面向项目的视图</h3><p><code>docker compose ps</code> 只列<strong>当前项目</strong>（compose 项目名隔离）的容器，是 <code>docker ps</code> 的过滤版；<code>docker compose logs -f app</code> 把指定服务容器的 stdout 聚合跟踪，等价于自动找到对应容器再 <code>docker logs -f</code>。</p>
+<h2 id="四、镜像身份三要素：Image-ID、tag、digest"><a href="#四、镜像身份三要素：Image-ID、tag、digest" class="headerlink" title="四、镜像身份三要素：Image ID、tag、digest"></a>四、镜像身份三要素：Image ID、tag、digest</h2><p>要比较镜像版本，先搞清楚三个常被混为一谈的概念：</p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>本质</th>
+<th>特点</th>
+<th>查看方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Image ID</strong></td>
+<td>镜像配置（config JSON）的 SHA256</td>
+<td><strong>本地</strong>唯一标识，跨机器无意义</td>
+<td><code>docker images</code> 的 IMAGE ID 列</td>
+</tr>
+<tr>
+<td><strong>tag</strong></td>
+<td>人类可读的名字（如 <code>myapp:v1.0</code>）</td>
+<td><strong>可变指针</strong>：可以移动、复用、删除，多个 tag 可指向同一镜像</td>
+<td><code>docker images</code> 的 TAG 列</td>
+</tr>
+<tr>
+<td><strong>digest</strong></td>
+<td>镜像清单（manifest）的 SHA256，形如 <code>sha256:abc...</code></td>
+<td><strong>内容寻址</strong>：内容变 digest 必变，仓库中的全局唯一身份</td>
+<td><code>docker images --digests</code>、<code>docker inspect</code> 的 RepoDigests</td>
+</tr>
+</tbody></table>
+<p>三者的关系：<strong>tag 是指向 digest 的可变标签，Image ID 是镜像在本地的身份证</strong>。同一个镜像可以有多个 tag；<code>latest</code> 没有任何特殊性，只是 Docker 在你不写 tag 时默认填上的一个普通标签。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 同时看 tag 和 digest</span></span><br><span class="line">docker images --digests</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看镜像完整信息（RepoDigests 字段记录了它在仓库里的 digest）</span></span><br><span class="line">docker inspect myapp:v1.0</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、如何比较两个镜像的版本与内容"><a href="#五、如何比较两个镜像的版本与内容" class="headerlink" title="五、如何比较两个镜像的版本与内容"></a>五、如何比较两个镜像的版本与内容</h2><h3 id="标签字符串：不能作为比较依据"><a href="#标签字符串：不能作为比较依据" class="headerlink" title="标签字符串：不能作为比较依据"></a>标签字符串：不能作为比较依据</h3><p><code>v1.0</code> 和 <code>v1.1</code> 看起来有大小，但 tag 只是任意字符串：</p>
+<ul>
+<li>字典序不等于时间序：<code>v1.9</code> 字典序大于 <code>v1.10</code></li>
+<li>语义化版本靠团队自觉维护，Docker 本身不理解版本号</li>
+<li>tag 可以被重新指向旧代码（回滚发版时 <code>v1.1</code> 可能指回旧构建）</li>
+</ul>
+<h3 id="创建时间：可参考但不可靠"><a href="#创建时间：可参考但不可靠" class="headerlink" title="创建时间：可参考但不可靠"></a>创建时间：可参考但不可靠</h3><p><code>docker images</code> 的 CREATED 列是镜像构建时间，比 tag 有参考价值，但仍有陷阱：旧代码完全可以重新构建（hotfix 回灌、rebuild），时间新不代表代码新。</p>
+<h3 id="digest：内容判等的唯一标准"><a href="#digest：内容判等的唯一标准" class="headerlink" title="digest：内容判等的唯一标准"></a>digest：内容判等的唯一标准</h3><p><strong>判断两个镜像内容是否完全一致，用 digest</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 比较两个 tag 是否指向同一内容</span></span><br><span class="line">docker buildx imagetools inspect myapp:v1.0</span><br><span class="line">docker buildx imagetools inspect myapp:v1.1</span><br><span class="line"><span class="comment"># 输出中的 Digest 一致 → 内容完全一致</span></span><br></pre></td></tr></table></figure>
+
+<p>digest 相同，则两个 tag 指向的 manifest 完全相同，内容必然一致（manifest 覆盖 config + 所有层的信息）。这是唯一能下”完全一致”结论的依据。</p>
+<p>但反向有个重要细节：<strong>digest 不同 ≠ 代码不同</strong>。镜像 config 里包含构建时间戳等元数据，同一份代码构建两次，digest 也会不同。想判断”代码是否相同而元数据不同”，要逐层比对 layer digest（<code>imagetools inspect</code> 输出里有各层摘要）——层全一致而顶层 config 不同，说明只是构建时间不同。做可复现构建（reproducible builds，固定 SOURCE_DATE_EPOCH）的团队可以跳过这个烦恼。</p>
+<h3 id="多架构的坑：manifest-list-digest-vs-平台-digest"><a href="#多架构的坑：manifest-list-digest-vs-平台-digest" class="headerlink" title="多架构的坑：manifest list digest vs 平台 digest"></a>多架构的坑：manifest list digest vs 平台 digest</h3><p>现代镜像多是多架构（amd64&#x2F;arm64）的 manifest list。注意有两层 digest：</p>
+<ul>
+<li><strong>manifest list digest</strong>：整个多架构镜像的 digest，<code>docker images --digests</code> 和仓库显示的都是它</li>
+<li><strong>平台 manifest digest</strong>：某个具体架构镜像的 digest</li>
+</ul>
+<p>比较时要用同一层级的 digest，拿本地的 manifest list digest 去比远端某个平台的 digest，永远对不上。</p>
+<h2 id="六、实战工作流"><a href="#六、实战工作流" class="headerlink" title="六、实战工作流"></a>六、实战工作流</h2><h3 id="判断本地-latest-是否落后于远端"><a href="#判断本地-latest-是否落后于远端" class="headerlink" title="判断本地 latest 是否落后于远端"></a>判断本地 latest 是否落后于远端</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 本地记录</span></span><br><span class="line">docker inspect myapp:latest --format <span class="string">&#x27;&#123;&#123;index .RepoDigests 0&#125;&#125;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 远端实况（不拉取，只查询）</span></span><br><span class="line">docker buildx imagetools inspect registry.example.com/myapp:latest</span><br><span class="line"></span><br><span class="line"><span class="comment"># 两个 digest 不一致 → 本地落后，执行 docker compose pull &amp;&amp; up -d</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="CI-CD-推荐姿势：tag-digest-双保险"><a href="#CI-CD-推荐姿势：tag-digest-双保险" class="headerlink" title="CI&#x2F;CD 推荐姿势：tag + digest 双保险"></a>CI&#x2F;CD 推荐姿势：tag + digest 双保险</h3><p>生产环境可靠的做法是构建时记录 digest，部署时按 digest 精确引用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># CI 构建推送后拿到 digest</span></span><br><span class="line">DIGEST=$(docker buildx imagetools inspect registry.example.com/myapp:v1.2.0 --format <span class="string">&#x27;&#123;&#123;.Manifest.Digest&#125;&#125;&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 部署清单按 digest 引用，杜绝任何&quot;指针漂移&quot;</span></span><br><span class="line"><span class="comment"># compose.yml:</span></span><br><span class="line"><span class="comment">#   image: registry.example.com/myapp@sha256:abc123...</span></span><br></pre></td></tr></table></figure>
+
+<p>按 digest 部署的好处：<strong>环境间绝对一致</strong>（测试过的就是那个比特不差的镜像）、<strong>回滚精确</strong>（换回旧 digest 即可）、<strong>审计可查</strong>（digest 就是内容的身份证）。</p>
+<h3 id="自动化方案：Watchtower"><a href="#自动化方案：Watchtower" class="headerlink" title="自动化方案：Watchtower"></a>自动化方案：Watchtower</h3><p>小团队懒得手动 pull，可以用 <a target="_blank" rel="noopener" href="https://github.com/containrrr/watchtower">Watchtower</a> 容器定期轮询远端 tag 的 digest，发现变化自动 pull 并重建容器：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker run -d --name watchtower \</span><br><span class="line">  -v /var/run/docker.sock:/var/run/docker.sock \</span><br><span class="line">  containrrr/watchtower --interval 300 myapp</span><br></pre></td></tr></table></figure>
+
+<p>注意它只监视，不做健康检查编排——核心服务还是建议在 CI 里显式控制发布节奏。</p>
+<h3 id="生产环境别用-latest（最后强调）"><a href="#生产环境别用-latest（最后强调）" class="headerlink" title="生产环境别用 latest（最后强调）"></a>生产环境别用 latest（最后强调）</h3><p><code>latest</code> 的一切问题都源于”可变指针 + 本地缓存”的组合。生产环境的纪律：</p>
+<ol>
+<li>每次发布打<strong>语义化版本 tag</strong>（<code>v1.2.0</code>），且 tag 一旦发布<strong>永不复用</strong></li>
+<li>compose.yml 里写死版本号或 digest，不写 latest</li>
+<li>latest 可以保留给开发环境快速迭代，但要有”它随时漂移”的自觉</li>
+</ol>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul>
+<li>镜像是只读层的叠加，容器 &#x3D; 镜像层 + 可写层；<code>pull</code> 按层差量下载，<code>up</code> 按期望状态幂等重建</li>
+<li><code>docker compose pull &amp;&amp; docker compose up -d</code> <strong>能保证更新</strong>：pull 移动本地 tag 指针，up 检测到镜像 ID 变化必然重建</li>
+<li><code>up -d --pull always</code> 一步搞定（新版 Compose）；长期行为写 <code>pull_policy: always</code>；<code>--force-recreate</code> 与拉取无关</li>
+<li>tag 是可变指针，不能比大小；创建时间可参考不可靠；<strong>内容判等的唯一标准是 digest</strong></li>
+<li>digest 相同必同内容；digest 不同未必不同代码（构建时间戳差异），精细比对看 layer digest</li>
+<li>生产部署：语义化版本 + digest 引用，环境一致性和回滚精确性都靠它</li>
+</ul>
+<p>相关的容器基础可以参考之前的<a href="/2026/08/e053049f/">《Docker 常用命令与核心知识总结》</a>。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://lz1219.github.io">lz9527</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://lz1219.github.io/2026/08/159b126e/">https://lz1219.github.io/2026/08/159b126e/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://lz1219.github.io" target="_blank">lz9527</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Docker/">Docker</a><a class="post-meta__tags" href="/tags/Docker-Compose/">Docker Compose</a><a class="post-meta__tags" href="/tags/%E8%BF%90%E7%BB%B4/">运维</a><a class="post-meta__tags" href="/tags/%E9%95%9C%E5%83%8F/">镜像</a></div><div class="post-share"><div class="social-share" data-image="/config/img/post/tech-cover.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="/pluginsSrc/butterfly-extsrc/sharejs/dist/css/share.min.css?v=1.1.6" media="print" onload="this.media='all'"><script src="/pluginsSrc/butterfly-extsrc/sharejs/dist/js/social-share.min.js?v=1.1.6" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/08/a2546b7d/" title="MySQL 实战手册（五）：事务与锁"><img class="cover" src="/config/img/post/database-cover.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">MySQL 实战手册（五）：事务与锁</div></div><div class="info-2"><div class="info-item-1">MySQL 实战手册（五）：事务与锁系列第五篇，讲 MySQL 最核心也最容易出事故的部分。事务和锁是”平时感觉不到、出事就是大事”的典型——超卖、脏数据、死锁告警，根子都在这里。本篇基于 InnoDB（MySQL 8.0），沿用系列前四篇的 shop 库。  系列目录：一、基础命令与日常管理 ｜ 二、存储过程与自定义函数 ｜ 三、视图与常用函数精讲 ｜ 四、性能分析与 SQL 调优 ｜ 五、事务与锁  一、事务基础与 ACID123456START TRANSACTION;          -- 或 BEGINUPDATE accounts SET balance = balance - 100 WHERE user_id = 1;SAVEPOINT sp1;              -- 设置保存点（可部分回滚）UPDATE accounts SET balance = balance + 100 WHERE user_id = 2;ROLLBACK TO sp1;            -- 只回滚到保存点COMMIT;                     -- 提...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/08/e053049f/" title="Docker 常用命令与核心知识总结"><img class="cover" src="/config/img/post/tech-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-05</div><div class="info-item-2">Docker 常用命令与核心知识总结</div></div><div class="info-2"><div class="info-item-1">Docker 常用命令与核心知识总结容器化已经是后端开发和部署的标配。本文梳理 Docker 的日常命令、Compose 编排、网络模式、数据卷和 Dockerfile 编写要点，作为日常工作的速查手册。 一、三个核心概念先理清三个概念，后面所有命令都围绕它们：  镜像（Image）：只读的打包模板，包含应用代码、依赖和运行环境，类似”安装包” 容器（Container）：镜像的运行实例，类似”安装后运行的程序”，可创建、启动、停止、删除 仓库（Registry）：存放镜像的地方，Docker Hub 是官方公共仓库  关系一句话：从仓库拉取镜像，用镜像运行容器。 二、镜像命令12345678910111213docker pull nginx:1.25              # 拉取镜像（建议显式指定 tag，慎用 latest）docker images                       # 查看本地镜像列表docker search mysql                 # 搜索 Docker Hub 镜像docker build -t myapp:1....</div></div></div></a><a class="pagination-related" href="/2026/08/74fb6452/" title="Kubernetes 核心概念与常用命令总结"><img class="cover" src="/config/img/post/tech-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-06</div><div class="info-item-2">Kubernetes 核心概念与常用命令总结</div></div><div class="info-2"><div class="info-item-1">Kubernetes 核心概念与常用命令总结上一篇总结了 Docker 单机容器的用法，但当容器数量变多、需要跨机器部署时，就需要编排系统了。Kubernetes（简称 K8s）是目前事实上的容器编排标准。本文梳理 K8s 的核心概念、架构和 kubectl 常用命令，作为入门和速查手册。 一、K8s 是什么，解决什么问题Docker 解决了”如何把应用打包运行”的问题，但在生产环境还会遇到：  容器挂了谁来重启？流量大了如何扩容？ 多台机器上容器如何调度、如何互相发现？ 如何滚动更新而不停机？  K8s 就是为解决这些问题而生的：它把一批机器组成集群，你声明”我要 3 个 Nginx 副本”，它负责调度、保活、扩缩容和自愈。 二、集群架构一个 K8s 集群分为两部分： 控制平面（Control Plane）：集群的大脑    组件 作用    kube-apiserver 集群唯一入口，所有操作都通过它的 REST API   etcd 分布式键值存储，保存集群全部状态   kube-scheduler 调度器，决定 Pod 跑在哪个节点   kube-controller-m...</div></div></div></a><a class="pagination-related" href="/2026/08/5bf4aca3/" title="Linux 常用命令总结"><img class="cover" src="/config/img/post/tech-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-05</div><div class="info-item-2">Linux 常用命令总结</div></div><div class="info-2"><div class="info-item-1">Linux 常用命令总结无论是后端开发、运维部署还是排查线上问题，Linux 命令行都是绕不开的基本功。本文按使用场景梳理日常工作中最常用的命令，每条都附常用参数和示例，可以作为速查手册收藏。 一、文件与目录操作这是使用频率最高的一组命令。    命令 作用 常用示例    pwd 显示当前所在目录 pwd   ls 列出目录内容 ls -lha（详细 + 隐藏文件 + 人类可读大小）   cd 切换目录 cd -（返回上次目录）、cd ~（回家目录）   mkdir 创建目录 mkdir -p a/b/c（递归创建多级目录）   touch 创建空文件 &#x2F; 更新时间戳 touch app.log   cp 复制 cp -r src/ dest/（递归复制目录）   mv 移动 &#x2F; 重命名 mv old.txt new.txt   rm 删除 rm -rf dir/（强制递归删除，慎用！）   ln 创建链接 ln -s /path/to/target link_name（软链接）   12# 典型组合：备份配置文件再修改cp nginx.conf nginx...</div></div></div></a><a class="pagination-related" href="/2026/08/df0776fa/" title="MySQL 实战手册（一）：基础命令与日常管理"><img class="cover" src="/config/img/post/database-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-06</div><div class="info-item-2">MySQL 实战手册（一）：基础命令与日常管理</div></div><div class="info-2"><div class="info-item-1">MySQL 实战手册（一）：基础命令与日常管理这是 MySQL 实战手册系列的第一篇，面向日常开发与运维场景。全系列基于 MySQL 8.0，共用同一个演示库 shop，示例均可直接复制执行。  系列目录：一、基础命令与日常管理 ｜ 二、存储过程与自定义函数 ｜ 三、视图与常用函数精讲 ｜ 四、性能分析与 SQL 调优 ｜ 五、事务与锁  〇、准备演示环境123456789101112131415161718192021222324CREATE DATABASE shop DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;USE shop;CREATE TABLE users (  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,  username VARCHAR(64) NOT NULL UNIQUE,  city VARCHAR(32) NOT NULL DEFAULT &#x27;&#x27;,  created_at DATETIME NOT NULL DEFAU...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/config/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">lz9527</div><div class="author-info-description">人生如逆旅，我亦是行人</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">20</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">37</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">5</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/lz1219" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:814028419@qq.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">啦啦啦啦~~~</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Docker-%E9%95%9C%E5%83%8F%E7%89%88%E6%9C%AC%E4%B8%8E%E6%9B%B4%E6%96%B0%E7%AD%96%E7%95%A5%EF%BC%9Atag%E3%80%81digest-%E4%B8%8E-Compose-%E6%8B%89%E5%8F%96%E5%AE%9E%E6%88%98"><span class="toc-number">1.</span> <span class="toc-text">Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E4%B8%BA%E4%BB%80%E4%B9%88-up-d-%E4%B8%8D%E6%8B%89%E6%96%B0%E9%95%9C%E5%83%8F"><span class="toc-number">1.1.</span> <span class="toc-text">一、为什么 up -d 不拉新镜像</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E4%B8%89%E7%A7%8D%E6%AD%A3%E7%A1%AE%E7%9A%84%E6%8B%89%E5%8F%96%E5%A7%BF%E5%8A%BF"><span class="toc-number">1.2.</span> <span class="toc-text">二、三种正确的拉取姿势</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%B9%E6%A1%88%E4%B8%80%EF%BC%9Apull-up%EF%BC%88%E6%98%BE%E5%BC%8F%E4%B8%A4%E6%AD%A5%EF%BC%8C%E6%9C%80%E7%A8%B3%EF%BC%89"><span class="toc-number">1.2.1.</span> <span class="toc-text">方案一：pull + up（显式两步，最稳）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%B9%E6%A1%88%E4%BA%8C%EF%BC%9Aup-%E6%97%B6%E7%9B%B4%E6%8E%A5%E5%B8%A6-%E2%80%93pull%EF%BC%88%E8%BE%83%E6%96%B0%E7%89%88%E6%9C%AC-Compose%EF%BC%89"><span class="toc-number">1.2.2.</span> <span class="toc-text">方案二：up 时直接带 –pull（较新版本 Compose）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%B9%E6%A1%88%E4%B8%89%EF%BC%9A%E5%86%99%E8%BF%9B-compose-yml%EF%BC%88%E9%85%8D%E7%BD%AE%E5%9B%BA%E5%8C%96%EF%BC%89"><span class="toc-number">1.2.3.</span> <span class="toc-text">方案三：写进 compose.yml（配置固化）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%81%BF%E5%9D%91%E6%8C%87%E5%8D%97%EF%BC%9A%E4%B8%89%E4%B8%AA%E5%AE%B9%E6%98%93%E6%B7%B7%E6%B7%86%E7%9A%84%E7%82%B9"><span class="toc-number">1.2.4.</span> <span class="toc-text">避坑指南：三个容易混淆的点</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E5%88%B0%E5%BA%95%E5%B9%B2%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%88%E5%8E%9F%E7%90%86%E8%A7%A3%E5%89%96%EF%BC%89"><span class="toc-number">1.3.</span> <span class="toc-text">三、常用命令到底干了什么（原理解剖）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%93%BA%E5%9E%AB%EF%BC%9A%E9%95%9C%E5%83%8F%E6%98%AF%E5%88%86%E5%B1%82%E7%9A%84%EF%BC%8C%E5%AE%B9%E5%99%A8%E6%98%AF%E2%80%9D%E9%95%9C%E5%83%8F-%E5%8F%AF%E5%86%99%E5%B1%82%E2%80%9D"><span class="toc-number">1.3.1.</span> <span class="toc-text">铺垫：镜像是分层的，容器是”镜像 + 可写层”</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#docker-pull%EF%BC%9A%E4%B8%8D%E6%98%AF%E2%80%9D%E4%B8%8B%E8%BD%BD%E4%B8%80%E4%B8%AA%E9%95%9C%E5%83%8F%E2%80%9D%EF%BC%8C%E6%98%AF%E6%8C%89%E5%B1%82%E5%8F%96%E5%B7%AE%E9%87%8F"><span class="toc-number">1.3.2.</span> <span class="toc-text">docker pull：不是”下载一个镜像”，是按层取差量</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#docker-run%EF%BC%9A%E4%B8%80%E6%9D%A1%E5%91%BD%E4%BB%A4-create-start"><span class="toc-number">1.3.3.</span> <span class="toc-text">docker run：一条命令 &#x3D; create + start</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#docker-build%EF%BC%9A%E9%80%90%E6%8C%87%E4%BB%A4%E7%94%9F%E6%88%90%E5%B1%82%EF%BC%8C%E7%BC%93%E5%AD%98%E6%8C%89%E6%8C%87%E4%BB%A4%E9%93%BE%E5%88%A4%E6%96%AD"><span class="toc-number">1.3.4.</span> <span class="toc-text">docker build：逐指令生成层，缓存按指令链判断</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#docker-exec%EF%BC%9A%E5%9C%A8%E5%AE%B9%E5%99%A8%E7%9A%84-namespace-%E9%87%8C%E5%BC%80%E6%96%B0%E8%BF%9B%E7%A8%8B"><span class="toc-number">1.3.5.</span> <span class="toc-text">docker exec：在容器的 namespace 里开新进程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#docker-stop-%E4%B8%8E-docker-kill%EF%BC%9A%E4%BF%A1%E5%8F%B7%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="toc-number">1.3.6.</span> <span class="toc-text">docker stop 与 docker kill：信号的区别</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#docker-logs%EF%BC%9A%E8%AF%BB%E7%9A%84%E6%98%AF%E5%AE%B9%E5%99%A8%E4%B8%BB%E8%BF%9B%E7%A8%8B%E7%9A%84-stdout-stderr"><span class="toc-number">1.3.7.</span> <span class="toc-text">docker logs：读的是容器主进程的 stdout&#x2F;stderr</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#docker-compose-up%EF%BC%9A%E4%B8%80%E6%AC%A1%E5%AE%8C%E6%95%B4%E7%9A%84%E7%BC%96%E6%8E%92%E6%B5%81%E7%A8%8B"><span class="toc-number">1.3.8.</span> <span class="toc-text">docker compose up：一次完整的编排流程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#docker-compose-down%EF%BC%9A%E6%B8%85%E5%9C%BA%E6%B8%85%E5%8D%95"><span class="toc-number">1.3.9.</span> <span class="toc-text">docker compose down：清场清单</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#docker-compose-ps-logs%EF%BC%9A%E9%9D%A2%E5%90%91%E9%A1%B9%E7%9B%AE%E7%9A%84%E8%A7%86%E5%9B%BE"><span class="toc-number">1.3.10.</span> <span class="toc-text">docker compose ps &#x2F; logs：面向项目的视图</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E9%95%9C%E5%83%8F%E8%BA%AB%E4%BB%BD%E4%B8%89%E8%A6%81%E7%B4%A0%EF%BC%9AImage-ID%E3%80%81tag%E3%80%81digest"><span class="toc-number">1.4.</span> <span class="toc-text">四、镜像身份三要素：Image ID、tag、digest</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E5%A6%82%E4%BD%95%E6%AF%94%E8%BE%83%E4%B8%A4%E4%B8%AA%E9%95%9C%E5%83%8F%E7%9A%84%E7%89%88%E6%9C%AC%E4%B8%8E%E5%86%85%E5%AE%B9"><span class="toc-number">1.5.</span> <span class="toc-text">五、如何比较两个镜像的版本与内容</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%87%E7%AD%BE%E5%AD%97%E7%AC%A6%E4%B8%B2%EF%BC%9A%E4%B8%8D%E8%83%BD%E4%BD%9C%E4%B8%BA%E6%AF%94%E8%BE%83%E4%BE%9D%E6%8D%AE"><span class="toc-number">1.5.1.</span> <span class="toc-text">标签字符串：不能作为比较依据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%9B%E5%BB%BA%E6%97%B6%E9%97%B4%EF%BC%9A%E5%8F%AF%E5%8F%82%E8%80%83%E4%BD%86%E4%B8%8D%E5%8F%AF%E9%9D%A0"><span class="toc-number">1.5.2.</span> <span class="toc-text">创建时间：可参考但不可靠</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#digest%EF%BC%9A%E5%86%85%E5%AE%B9%E5%88%A4%E7%AD%89%E7%9A%84%E5%94%AF%E4%B8%80%E6%A0%87%E5%87%86"><span class="toc-number">1.5.3.</span> <span class="toc-text">digest：内容判等的唯一标准</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%9A%E6%9E%B6%E6%9E%84%E7%9A%84%E5%9D%91%EF%BC%9Amanifest-list-digest-vs-%E5%B9%B3%E5%8F%B0-digest"><span class="toc-number">1.5.4.</span> <span class="toc-text">多架构的坑：manifest list digest vs 平台 digest</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E5%AE%9E%E6%88%98%E5%B7%A5%E4%BD%9C%E6%B5%81"><span class="toc-number">1.6.</span> <span class="toc-text">六、实战工作流</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A4%E6%96%AD%E6%9C%AC%E5%9C%B0-latest-%E6%98%AF%E5%90%A6%E8%90%BD%E5%90%8E%E4%BA%8E%E8%BF%9C%E7%AB%AF"><span class="toc-number">1.6.1.</span> <span class="toc-text">判断本地 latest 是否落后于远端</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CI-CD-%E6%8E%A8%E8%8D%90%E5%A7%BF%E5%8A%BF%EF%BC%9Atag-digest-%E5%8F%8C%E4%BF%9D%E9%99%A9"><span class="toc-number">1.6.2.</span> <span class="toc-text">CI&#x2F;CD 推荐姿势：tag + digest 双保险</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%87%AA%E5%8A%A8%E5%8C%96%E6%96%B9%E6%A1%88%EF%BC%9AWatchtower"><span class="toc-number">1.6.3.</span> <span class="toc-text">自动化方案：Watchtower</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E5%88%AB%E7%94%A8-latest%EF%BC%88%E6%9C%80%E5%90%8E%E5%BC%BA%E8%B0%83%EF%BC%89"><span class="toc-number">1.6.4.</span> <span class="toc-text">生产环境别用 latest（最后强调）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.7.</span> <span class="toc-text">总结</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/08/159b126e/" title="Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战"><img src="/config/img/post/tech-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战"/></a><div class="content"><a class="title" href="/2026/08/159b126e/" title="Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战">Docker 镜像版本与更新策略：tag、digest 与 Compose 拉取实战</a><time datetime="2026-08-07T05:58:46.000Z" title="发表于 2026-08-07 13:58:46">2026-08-07</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/a2546b7d/" title="MySQL 实战手册（五）：事务与锁"><img src="/config/img/post/database-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="MySQL 实战手册（五）：事务与锁"/></a><div class="content"><a class="title" href="/2026/08/a2546b7d/" title="MySQL 实战手册（五）：事务与锁">MySQL 实战手册（五）：事务与锁</a><time datetime="2026-08-06T08:38:12.000Z" title="发表于 2026-08-06 16:38:12">2026-08-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/15377b3c/" title="MySQL 实战手册（四）：性能分析与 SQL 调优"><img src="/config/img/post/database-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="MySQL 实战手册（四）：性能分析与 SQL 调优"/></a><div class="content"><a class="title" href="/2026/08/15377b3c/" title="MySQL 实战手册（四）：性能分析与 SQL 调优">MySQL 实战手册（四）：性能分析与 SQL 调优</a><time datetime="2026-08-06T08:21:28.000Z" title="发表于 2026-08-06 16:21:28">2026-08-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/eb26afd2/" title="MySQL 实战手册（三）：视图与常用函数精讲"><img src="/config/img/post/database-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="MySQL 实战手册（三）：视图与常用函数精讲"/></a><div class="content"><a class="title" href="/2026/08/eb26afd2/" title="MySQL 实战手册（三）：视图与常用函数精讲">MySQL 实战手册（三）：视图与常用函数精讲</a><time datetime="2026-08-06T08:21:27.000Z" title="发表于 2026-08-06 16:21:27">2026-08-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/bf824c0b/" title="MySQL 实战手册（二）：存储过程与自定义函数"><img src="/config/img/post/database-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="MySQL 实战手册（二）：存储过程与自定义函数"/></a><div class="content"><a class="title" href="/2026/08/bf824c0b/" title="MySQL 实战手册（二）：存储过程与自定义函数">MySQL 实战手册（二）：存储过程与自定义函数</a><time datetime="2026-08-06T08:21:26.000Z" title="发表于 2026-08-06 16:21:26">2026-08-06</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By lz9527</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.7.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.7.0"></script><script src="/js/main.js?v=5.7.0"></script><div class="js-pjax"><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getGiscusTheme = theme => theme === 'dark' ? 'dark' : 'light'
+
+  const createScriptElement = config => {
+    const ele = document.createElement('script')
+    Object.entries(config).forEach(([key, value]) => {
+      ele.setAttribute(key, value)
+    })
+    return ele
+  }
+
+  const loadGiscus = (el = document, key) => {
+    const mappingConfig = isShuoshuo
+      ? { 'data-mapping': 'specific', 'data-term': key }
+      : { 'data-mapping': (option && option['data-mapping']) || 'pathname' }
+
+    const giscusConfig = {
+      src: 'https://giscus.app/client.js',
+      'data-repo': 'lz1219/lz1219.github.io',
+      'data-repo-id': 'R_kgDOLF89GQ',
+      'data-category-id': 'DIC_kwDOLF89Gc4DCxq0',
+      'data-theme': getGiscusTheme(document.documentElement.getAttribute('data-theme')),
+      'data-reactions-enabled': '1',
+      crossorigin: 'anonymous',
+      async: true,
+      ...option,
+      ...mappingConfig
+    }
+
+    const scriptElement = createScriptElement(giscusConfig)
+
+    el.querySelector('#giscus-wrap').appendChild(scriptElement)
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyGiscus = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+  }
+
+  const changeGiscusTheme = theme => {
+    const iframe = document.querySelector('#giscus-wrap iframe')
+    if (iframe) {
+      const message = {
+        giscus: {
+          setConfig: {
+            theme: getGiscusTheme(theme)
+          }
+        }
+      }
+      iframe.contentWindow.postMessage(message, 'https://giscus.app')
+    }
+  }
+
+  btf.addGlobalFn('themeChange', changeGiscusTheme, 'giscus')
+
+  if (isShuoshuo) {
+    'Giscus' === 'Giscus'
+      ? window.shuoshuoComment = { loadComment: loadGiscus }
+      : window.loadOtherComment = loadGiscus
+    return
+  }
+
+  if ('Giscus' === 'Giscus' || !true) {
+    if (true) btf.loadComment(document.getElementById('giscus-wrap'), loadGiscus)
+    else loadGiscus()
+  } else {
+    window.loadOtherComment = loadGiscus
+  }
+})()</script></div><canvas class="fireworks" mobile="false"></canvas><script src="/pluginsSrc/butterfly-extsrc/dist/fireworks.min.js?v=1.1.6"></script><script defer="defer" id="fluttering_ribbon" mobile="false" src="/pluginsSrc/butterfly-extsrc/dist/canvas-fluttering-ribbon.min.js?v=1.1.6"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.7.0"></script></div></div></body></html>
