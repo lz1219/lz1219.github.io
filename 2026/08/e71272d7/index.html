@@ -1,0 +1,432 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook | lz9527</title><meta name="author" content="lz9527"><meta name="copyright" content="lz9527"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="系统梳理 2025–2026 年上下文工程的最前沿研究：Chroma 的 Context Rot 实验证明所有模型随上下文变长而退化，四大失败模式分类学，以及压缩、外部记忆、子代理、即时检索四大工程解法，直到让上下文自我进化的 ACE 框架。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook">
+<meta property="og:url" content="https://lz1219.github.io/2026/08/e71272d7/index.html">
+<meta property="og:site_name" content="lz9527">
+<meta property="og:description" content="系统梳理 2025–2026 年上下文工程的最前沿研究：Chroma 的 Context Rot 实验证明所有模型随上下文变长而退化，四大失败模式分类学，以及压缩、外部记忆、子代理、即时检索四大工程解法，直到让上下文自我进化的 ACE 框架。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lz1219.github.io/config/img/post/ai-cover.jpg">
+<meta property="article:published_time" content="2026-08-14T07:35:00.000Z">
+<meta property="article:modified_time" content="2026-08-14T07:35:55.721Z">
+<meta property="article:author" content="lz9527">
+<meta property="article:tag" content="AI">
+<meta property="article:tag" content="Agent">
+<meta property="article:tag" content="上下文工程">
+<meta property="article:tag" content="开发实践">
+<meta property="article:tag" content="提示工程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lz1219.github.io/config/img/post/ai-cover.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "上下文工程（一）：为什么\"塞更多\"正在失效——从 Context Rot 到自我进化的 Playbook",
+  "url": "https://lz1219.github.io/2026/08/e71272d7/",
+  "image": "https://lz1219.github.io/config/img/post/ai-cover.jpg",
+  "datePublished": "2026-08-14T07:35:00.000Z",
+  "dateModified": "2026-08-14T07:35:55.721Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "lz9527",
+      "url": "https://lz1219.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://lz1219.github.io/2026/08/e71272d7/index.html"><link rel="preconnect"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.7.0"><link rel="stylesheet" href="/pluginsSrc/@fortawesome/fontawesome-free/css/all.min.css?v=7.3.1"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+
+    const scriptCache = new Map()
+    const cssCache = new Map()
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      const activateDarkMode = () => {
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/pagefind/pagefind.js","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: '/pluginsSrc/@egjs/infinitegrid/dist/infinitegrid.min.js?v=4.13.0',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '上下文工程（一）：为什么"塞更多"正在失效——从 Context Rot 到自我进化的 Playbook',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/config/css/mycolor.css"><meta name="generator" content="Hexo 8.1.2"><link rel="alternate" href="/atom.xml" title="lz9527" type="application/atom+xml">
+</head><body><div class="bg-animation" id="web_bg" style="background-color: #efefef;"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/config/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">30</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">49</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fa fa-heartbeat"></i><span> 清单</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 读书</span></a></li><li><a class="site-page child" href="/songs/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/config/img/post/ai-cover.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">lz9527</span></a><a class="nav-page-title" href="/"><span class="site-name">上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fa fa-heartbeat"></i><span> 清单</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 读书</span></a></li><li><a class="site-page child" href="/songs/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-08-14T07:35:00.000Z" title="发表于 2026-08-14 15:35:00">2026-08-14</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-08-14T07:35:55.721Z" title="更新于 2026-08-14 15:35:55">2026-08-14</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%8A%80%E6%9C%AF/">技术</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container" data-pagefind-body><span data-pagefind-meta="title:上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook"></span><blockquote>
+<p>2025 年 7 月，Chroma 用 18 个前沿模型做了一组实验，得出的结论让整个行业沉默了：<strong>所有模型——无一例外——都会随着输入变长而退化。</strong> 厂商宣传的”百万 token 上下文窗口”是容量，不是可用容量。承认这一点之后，一门新学科正式登上舞台：上下文工程（Context Engineering）。本文系统梳理 2025–2026 年这个领域最重要的研究和最实用的工程解法，作为本系列的开篇。</p>
+</blockquote>
+<span id="more"></span>
+
+<hr>
+<h2 id="一、一个价值连城的误会：”窗口更大-能力更强”"><a href="#一、一个价值连城的误会：”窗口更大-能力更强”" class="headerlink" title="一、一个价值连城的误会：”窗口更大 &#x3D; 能力更强”"></a>一、一个价值连城的误会：”窗口更大 &#x3D; 能力更强”</h2><p>过去三年，上下文窗口从 4K 膨胀到 1M token，”大海捞针”（Needle in a Haystack）测试里各家模型动辄接近满分。于是一个危险的假设流行开来：<strong>既然装得下，那就全塞进去。</strong></p>
+<p>Chroma 在 2025 年 7 月发布的技术报告 <em>Context Rot: How Increasing Input Tokens Impacts LLM Performance</em> 打碎了这个假设。他们的实验设计堪称教科书级别：<strong>任务本身保持不变，只改变输入长度</strong>，然后在 Claude 4 系列、GPT-4.1 系列、Gemini 2.5 系列、Qwen3 系列共 18 个前沿模型上复现。</p>
+<p>结论有三层，一层比一层扎心：</p>
+<ol>
+<li><strong>全部 18 个模型都随输入变长而退化</strong>——不是大多数，是全部。一个在 5K token 下满分的任务，到 100K token 时可能明显下滑，远未触及窗口上限。</li>
+<li><strong>退化是长度驱动的，不是位置驱动的</strong>。此前 Stanford 的”Lost in the Middle”（2023）认为信息放在上下文中间会被忽视，但 Chroma 在实验中把关键信息放在各个位置测试，<strong>没有发现稳定的位置优势</strong>——“把重要内容放开头或结尾”这条流传甚广的经验，并不可靠。</li>
+<li><strong>干扰项（distractors）是隐形杀手</strong>。当上下文中混入与正确答案语义相似但不正确的内容时（真实代码库里到处都是这种东西），性能随长度和干扰项数量双重下滑。</li>
+</ol>
+<p>更深一层的警告是：”大海捞针”测试之所以失效，是因为它只考<strong>词汇匹配</strong>——问题里的词和答案里的词高度重叠。而真实任务是<strong>语义匹配</strong>：你问”我们海外扩张进展如何”，模型要自己把”海外扩张”关联到具体国家和营收数字。正是这类任务，在长上下文下退化最严重。</p>
+<p><strong>百万 token 窗口是图书馆的建筑面积，不是你的工作台。</strong> 这就是 Context Rot（上下文腐化），也是上下文工程存在的理由。</p>
+<hr>
+<h2 id="二、四种死法：长上下文失败模式分类学"><a href="#二、四种死法：长上下文失败模式分类学" class="headerlink" title="二、四种死法：长上下文失败模式分类学"></a>二、四种死法：长上下文失败模式分类学</h2><p>如果说 Context Rot 回答了”会退化”，那么 Drew Breunig 在 2025 年 6 月总结的四大失败模式回答了”怎么退化”。这套分类学已经成为业界通用语言：</p>
+<table>
+<thead>
+<tr>
+<th>失败模式</th>
+<th>机理</th>
+<th>真实案例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Context Poisoning（中毒）</strong></td>
+<td>一条幻觉&#x2F;错误信息进入上下文，被后续反复引用、不断自我强化</td>
+<td>DeepMind 的 Gemini 2.5 宝可梦 Agent：上下文超过 10 万 token 后，目标区被污染，开始追逐不可能完成的目标</td>
+</tr>
+<tr>
+<td><strong>Context Distraction（分心）</strong></td>
+<td>历史太长，模型过度依赖”以前做过什么”，重复旧动作而不是重新推理</td>
+<td>Agent 在长会话里机械重复已失败的工具调用</td>
+</tr>
+<tr>
+<td><strong>Context Confusion（迷惑）</strong></td>
+<td>多余内容稀释注意力；工具过多时尤其明显</td>
+<td>研究观察到工具超过约 20 个时，部分模型的工具选择开始漂移</td>
+</tr>
+<tr>
+<td><strong>Context Clash（冲突）</strong></td>
+<td>后续信息与先前上下文矛盾，模型被撕裂</td>
+<td>Laban 等人的研究发现多轮对话中性能下降 39%，主要归因于此</td>
+</tr>
+</tbody></table>
+<p>工程侧还有一个 2026 年的压缩研究综述（arXiv 2605.2065）补充了针对”压缩”这一解法本身的三级失败：F1 压缩时机决策错误、F2 压缩过程信息丢失、F3 压缩后无法找回原文。<strong>你用来救上下文的手段，本身就是新的失败来源</strong>——这点后面会再讲到。</p>
+<hr>
+<h2 id="三、工程解法四大件：目前生产环境验证过的全部家当"><a href="#三、工程解法四大件：目前生产环境验证过的全部家当" class="headerlink" title="三、工程解法四大件：目前生产环境验证过的全部家当"></a>三、工程解法四大件：目前生产环境验证过的全部家当</h2><p>Anthropic 在 2025 年 9 月的工程博客 <em>Effective Context Engineering for AI Agents</em> 中给出了经过生产验证的核心原则：”找到<strong>最小的高信号 token 集合</strong>，最大化期望结果的概率。”围绕这个原则，四种解法已经被主流 Agent 产品广泛采用：</p>
+<h3 id="3-1-压缩（Compaction）"><a href="#3-1-压缩（Compaction）" class="headerlink" title="3.1 压缩（Compaction）"></a>3.1 压缩（Compaction）</h3><p>定期把历史总结成摘要，用摘要重启上下文。代价是细节丢失换取续航。</p>
+<ul>
+<li><strong>最常见的坑</strong>：压缩不当会导致”thrashing”——Agent 因为摘要丢了关键信息，被迫重新读文件、重跑工具，来回打转。</li>
+<li><strong>最轻量的变体</strong>：只清理陈旧工具结果（tool result clearing），保留消息结构。Anthropic 的产品化版本（context editing）在 100 轮网页搜索评测中，让原本会耗尽上下文的任务顺利完成，<strong>同时减少 84% 的 token 消耗</strong>。</li>
+<li><strong>2026 年的新趋势</strong>：服务端压缩（Anthropic <code>compact-2026-01-12</code>），由 API 侧保证 tool_use&#x2F;tool_result 配对完整性，避免本地压缩产生的孤儿引用把会话弄崩。</li>
+</ul>
+<h3 id="3-2-结构化笔记-外部记忆（Structured-Note-taking）"><a href="#3-2-结构化笔记-外部记忆（Structured-Note-taking）" class="headerlink" title="3.2 结构化笔记 &#x2F; 外部记忆（Structured Note-taking）"></a>3.2 结构化笔记 &#x2F; 外部记忆（Structured Note-taking）</h3><p>让 Agent 把工作状态写到<strong>上下文之外</strong>的文件里（<code>NOTES.md</code>、todo 清单、决策日志），需要时再读回来。Anthropic 的 memory tool 给模型提供对 <code>/memories</code> 目录的文件操作能力，结合 context editing 后，agentic search 性能提升 <strong>39%</strong>。Claude Code 的 CLAUDE.md、各类 Agent 的 AGENTS.md，本质上都是这个思想的产物：<strong>记忆放在文件系统里，工作上下文保持精简。</strong></p>
+<h3 id="3-3-子代理隔离（Sub-agent-Isolation）"><a href="#3-3-子代理隔离（Sub-agent-Isolation）" class="headerlink" title="3.3 子代理隔离（Sub-agent Isolation）"></a>3.3 子代理隔离（Sub-agent Isolation）</h3><p>主代理只持有高层计划，把脏活累活派给拥有干净独立窗口的子代理；子代理烧掉几万 token 探索后，只返回一份 <strong>1000~2000 token 的蒸馏摘要</strong>。</p>
+<p>效果有多猛？Anthropic 的多代理研究系统（Opus 4 主代理 + Sonnet 4 子代理）在内部研究评测上比单代理 Opus 4 高出 <strong>90.2%</strong>。</p>
+<p>但请记下一个重要的反面边界：Anthropic 自己明确指出，<strong>多代理不适合子任务之间需要大量共享上下文、互相依赖紧密的场景——比如写代码</strong>。它适合广度优先的研究类任务，不适合深度耦合的工程任务。代价也不低：token 消耗约为普通对话的 15 倍。</p>
+<h3 id="3-4-即时检索（Just-in-Time-Retrieval）"><a href="#3-4-即时检索（Just-in-Time-Retrieval）" class="headerlink" title="3.4 即时检索（Just-in-Time Retrieval）"></a>3.4 即时检索（Just-in-Time Retrieval）</h3><p>这是数据获取范式的根本转移：<strong>从预加载（预先把资料塞进上下文）转向用时再取</strong>。</p>
+<ul>
+<li><strong>传指针，不传内容</strong>：上下文里只放文件路径、ID、URL，Agent 需要时自己调工具取详情；</li>
+<li><strong>渐进披露（Progressive Disclosure）</strong>：先给摘要，Agent 逐层下钻——文件列表 → 元数据 → 正文。Claude 的 Skills 系统就是这个机制的工程实现；</li>
+<li><strong>给发现工具，不给数据倾倒</strong>：提供 <code>search_docs()</code> + <code>read_doc()</code>，而不是把整个知识库粘进去。</li>
+</ul>
+<p>一句话总结：<strong>“别把整个图书馆寄过来，派一个图书管理员来。”</strong></p>
+<p>这条路线的实证支持来自 ContextBench（arXiv 2602.05892，1136 个任务、66 个仓库）：<strong>LLM 一贯偏向高召回、低精度——检索太多，用得太少。</strong> 渐进披露不是风格偏好，是被基准验证的正确姿势。</p>
+<hr>
+<h2 id="四、最前沿：上下文开始自我进化"><a href="#四、最前沿：上下文开始自我进化" class="headerlink" title="四、最前沿：上下文开始自我进化"></a>四、最前沿：上下文开始自我进化</h2><p>以上是”人工程上下文”的全部武器。而 2025 年底以来，研究前沿已经推进到下一阶段：<strong>让上下文在运行中自我改进。</strong></p>
+<h3 id="ACE：把上下文当成不断进化的-Playbook"><a href="#ACE：把上下文当成不断进化的-Playbook" class="headerlink" title="ACE：把上下文当成不断进化的 Playbook"></a>ACE：把上下文当成不断进化的 Playbook</h3><p>Stanford、SambaNova 与 UC Berkeley 的 ACE（Agentic Context Engineering，arXiv 2510.04618，ICLR 2026）是目前这条线上最重要的工作。它先诊断出传统上下文优化的两个慢性病：</p>
+<ul>
+<li><strong>简洁偏见（Brevity Bias）</strong>：优化器倾向于把上下文压缩成简短通用的总结，领域细节被丢弃；</li>
+<li><strong>上下文坍塌（Context Collapse）</strong>：每轮迭代都整体重写上下文，细节在多轮重写中被逐步侵蚀——和文档腐化一模一样的病，只是发生在机器手里。</li>
+</ul>
+<p>ACE 的处方是把上下文视为一本<strong>持续积累、逐条修订的 Playbook（战术手册）</strong>，由三个角色维护：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Generator（生成者）→ 执行任务，产出推理轨迹，暴露哪些做法有效/有害</span><br><span class="line">Reflector（反思者）→ 从轨迹中蒸馏出具体的、可复用的经验教训</span><br><span class="line">Curator（策展者） → 把教训做成增量条目（delta），合并进 Playbook，</span><br><span class="line">                     带去重、剪枝和&quot;有益/有害&quot;计数</span><br></pre></td></tr></table></figure>
+
+<p>关键设计是<strong>增量式 delta 更新</strong>：绝不整体重写，只局部增补和修订——这直接杀死了上下文坍塌。效果：AppWorld 智能体基准上 <strong>+10.6%</strong>（最高 +17.1%），金融推理基准 +8.6%，适配延迟降低 <strong>86.9%</strong>，而且<strong>不需要人工标注</strong>，只靠执行反馈（代码跑没跑通、任务成没成功）就能自我进化。论文中最有象征意义的结果：一个较小的开源模型（DeepSeek-V3.1）+ ACE，打平了榜单上基于 GPT-4.1 的顶级生产级 Agent。</p>
+<p><strong>上下文工程由此从”运维规范”升格为”训练机制”</strong>——不改模型权重，只改输入，就能让系统持续变强。</p>
+<h3 id="其他值得盯紧的前沿方向"><a href="#其他值得盯紧的前沿方向" class="headerlink" title="其他值得盯紧的前沿方向"></a>其他值得盯紧的前沿方向</h3><ul>
+<li><strong>Context-Folding（arXiv 2510.11967）</strong>：把”开子任务 → 折叠只留结论”做成模型原生动作（branch&#x2F;return），配合强化学习训练，在深度研究和 SWE 任务上以<strong>约 1&#x2F;10 的活动上下文</strong>匹配甚至超过 ReAct。</li>
+<li><strong>观察掩码（Observation Masking，JetBrains，NeurIPS DL4C 2025）</strong>：简单到令人不安——只是把无关信息遮掉，性能 +2.6%，成本 <strong>-52%</strong>。再次印证”更少、更准 &gt; 更多”。</li>
+<li><strong>文件系统即外存</strong>：2026 年的研究（<em>Coding Agents are Effective Long-Context Processors</em>）论证了编码 Agent 把代码库文件系统当作”外挂上下文窗口”使用的有效性——你不需要把代码放进上下文，你需要让 Agent 随时找得到。</li>
+<li><strong>上下文压缩的系统化</strong>：2026 年 5 月的综述（arXiv 2605.2065）首次统一了压缩对象、压缩机制、触发策略三个设计维度，并整理了 F1&#x2F;F2&#x2F;F3 失败分类——这个子领域正在从手艺变成工程学科。</li>
+</ul>
+<hr>
+<h2 id="五、一盆必要的冷水：AGENTS-md-可能正在帮倒忙"><a href="#五、一盆必要的冷水：AGENTS-md-可能正在帮倒忙" class="headerlink" title="五、一盆必要的冷水：AGENTS.md 可能正在帮倒忙"></a>五、一盆必要的冷水：AGENTS.md 可能正在帮倒忙</h2><p>2026 年 2 月，ETH Zurich 的 <em>Evaluating AGENTS.md</em>（arXiv 2602.11988）在 SWE-bench Lite 和新基准 AGENTbench 上做了 438 个任务的对照实验，结果让很多人都该重新审视自己的仓库：</p>
+<ul>
+<li><strong>LLM 自动生成的上下文文件，使任务成功率下降约 3%</strong>；</li>
+<li><strong>人工精心编写的文件，提升约 4%</strong>；</li>
+<li><strong>两者都让推理成本上升超过 20%</strong>。</li>
+</ul>
+<p>结论：上下文文件不是”有比没有好”，而是**”准比有重要”**。自动生成的泛泛文件是噪声源；只有包含精确的构建命令、明确约束和真实踩坑记录的文件才值得存在。这与 Chroma 的干扰项实验、JetBrains 的掩码实验指向同一个方向：</p>
+<blockquote>
+<p><strong>上下文工程的守恒定律：每一个低质量 token，都在消耗高质量 token 的注意力配额。</strong></p>
+</blockquote>
+<hr>
+<h2 id="六、落地清单：现在就能做的事"><a href="#六、落地清单：现在就能做的事" class="headerlink" title="六、落地清单：现在就能做的事"></a>六、落地清单：现在就能做的事</h2><p>把上面的研究翻译成个人开发者和团队的行动项：</p>
+<p><strong>会话层面（今天就能改）</strong></p>
+<ol>
+<li>长会话感觉到输出质量下滑时，主动重开会话 + 携带摘要，而不是硬撑；</li>
+<li>上下文中只放路径和指针，让 Agent 自己读文件——相信它的 grep；</li>
+<li>工具&#x2F;技能别贪多，超过 20 个就该做减法；</li>
+<li>警惕”中毒”：发现 Agent 反复引用一个错误结论时，立刻纠正或重开，错误在上下文里会自我繁殖。</li>
+</ol>
+<p><strong>仓库层面（本周就能做）</strong></p>
+<ol start="5">
+<li>AGENTS.md 坚持手写、保持精简（社区共识：根文件 300 行以内），只写”没有它 AI 就会犯错”的内容；</li>
+<li>每个模块级细节下沉到子目录文档，避免单一巨型文件；</li>
+<li>用 lint、测试、CI 把红线变成自动化检查，别指望文档的 70% 遵守率；</li>
+<li>维护”踩坑清单”：AI 每犯一次错，补一条针对性规则——这正是 ACE 的 Reflector-Curator 循环的人工版，也是被论文验证有效的机制。</li>
+</ol>
+<p><strong>架构层面（构建 Agent 系统时）</strong></p>
+<ol start="9">
+<li>长任务优先结构化笔记（外部记忆），其次压缩，谨慎使用多代理——先想清楚子任务间是否深度耦合；</li>
+<li>检索链路按”两段式”搭建：先粗筛到几百条，再用 LLM 精排；</li>
+<li>给压缩策略留出”找回原文”的逃生通道（记住 F3 失败：压缩后无法访问原文）。</li>
+</ol>
+<hr>
+<h2 id="七、写在最后：这个系列接下来讲什么"><a href="#七、写在最后：这个系列接下来讲什么" class="headerlink" title="七、写在最后：这个系列接下来讲什么"></a>七、写在最后：这个系列接下来讲什么</h2><p>回看 2025–2026 年的研究图景，上下文工程的演进脉络非常清晰：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Prompt Engineering（写好一句话）</span><br><span class="line">  → Context Engineering（管好整个窗口）</span><br><span class="line">    → Agentic Context Engineering（让窗口自我进化）</span><br></pre></td></tr></table></figure>
+
+<p>不变的内核只有一句：<strong>模型的表现由输入的信息载荷决定，而这个载荷需要被像设计系统架构一样精心设计。</strong></p>
+<p>本系列后续计划：</p>
+<ul>
+<li><strong>（二）AGENTS.md 深度实践</strong>：从 &#x2F;init 到 bad-case 驱动迭代，写出 ETH Zurich 研究里那”+4%”的文件，避开”-3%”的坑；</li>
+<li><strong>（三）记忆系统实战</strong>：笔记文件、记忆工具、跨会话状态，给 Agent 装上外存；</li>
+<li><strong>（四）多代理与子代理</strong>：什么时候该拆，什么时候是给自己挖坑。</li>
+</ul>
+<hr>
+<blockquote>
+<p><strong>参考文献（按文中出现顺序）</strong></p>
+<ol>
+<li>Chroma Research: <em>Context Rot: How Increasing Input Tokens Impacts LLM Performance</em> (2025.07)</li>
+<li>Liu et al.: <em>Lost in the Middle: How Language Models Use Long Contexts</em> (2023)</li>
+<li>Drew Breunig: <em>How Long Contexts Fail</em> &#x2F; <em>How to Fix Your Context</em> (2025.06)</li>
+<li>Wang et al.: <em>Context Compression for LLM Agents: A Survey</em> (2026.05, arXiv 2605.2065)</li>
+<li>Anthropic: <em>Effective Context Engineering for AI Agents</em> (2025.09)</li>
+<li>Anthropic: <em>How We Built Our Multi-Agent Research System</em> (2025)</li>
+<li><em>ContextBench</em> (2026, arXiv 2602.05892)</li>
+<li>Zhang et al.: <em>ACE: Agentic Context Engineering</em> (Stanford&#x2F;SambaNova, 2025.10, arXiv 2510.04618, ICLR 2026)</li>
+<li><em>Context-Folding</em> (2025, arXiv 2510.11967)</li>
+<li>JetBrains: <em>The Complexity Trap</em> (NeurIPS DL4C 2025)</li>
+<li>Mei et al.: <em>A Survey of Context Engineering for Large Language Models</em> (2025.07, arXiv 2507.13334)</li>
+<li>Gloaguen et al.: <em>Evaluating AGENTS.md</em> (ETH Zurich, 2026.02, arXiv 2602.11988)</li>
+</ol>
+</blockquote>
+<div style="display:none" aria-hidden="true"><span data-pagefind-weight="5">标签：AI Agent 开发实践 提示工程 上下文工程</span></div></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://lz1219.github.io">lz9527</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://lz1219.github.io/2026/08/e71272d7/">https://lz1219.github.io/2026/08/e71272d7/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://lz1219.github.io" target="_blank">lz9527</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/AI/">AI</a><a class="post-meta__tags" href="/tags/Agent/">Agent</a><a class="post-meta__tags" href="/tags/%E5%BC%80%E5%8F%91%E5%AE%9E%E8%B7%B5/">开发实践</a><a class="post-meta__tags" href="/tags/%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B/">提示工程</a><a class="post-meta__tags" href="/tags/%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B/">上下文工程</a></div><div class="post-share"><div class="social-share" data-image="/config/img/post/ai-cover.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="/pluginsSrc/butterfly-extsrc/sharejs/dist/css/share.min.css?v=1.1.6" media="print" onload="this.media='all'"><script src="/pluginsSrc/butterfly-extsrc/sharejs/dist/js/social-share.min.js?v=1.1.6" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/08/2465f69b/" title="与 AI 的第一次对话：新建项目与已有项目的上下文策略"><img class="cover" src="/config/img/post/tech-cover.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">与 AI 的第一次对话：新建项目与已有项目的上下文策略</div></div><div class="info-2"><div class="info-item-1"> 大多数”如何给 AI 上下文”的文章都在回答错误的问题。它们教你给什么，但真正决定成败的是你把上下文放在哪一层——对话里、文档里、代码结构里，还是自动化检查里。这四层的可靠性天差地别，而第一次对话的真正价值，就是为每一条重要信息选择正确的归宿。     一、一个被忽视的模型：上下文的四个层级先摆几个有出处的硬事实，它们构成了本文全部策略的地基：  前沿模型能稳定遵循的指令总量大约只有 150~200 条，超过之后遵守率快速衰减（Anthropic 及社区多组实验的共识）。 写进 CLAUDE.md &#x2F; AGENTS.md 的规则，实际被遵守的比例大约是 70%——剩下 30% 的漏洞，靠文档永远堵不上。 LLM 有明确的位置偏见：它高度关注上下文的开头和结尾，夹在中间的长文档容易沦为”被遗忘的中间层”。 Anthropic 工程博客对上下文的总原则只有一句话：informative, yet tight（信息充分，但要紧凑）。  把这四条拼起来，会得到一个反直觉的结论：上下文给得越多，效果可能越差。 真正的问题是安置问题。按照可靠性从低到高，上下文有四个层级：    ...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/08/2465f69b/" title="与 AI 的第一次对话：新建项目与已有项目的上下文策略"><img class="cover" src="/config/img/post/tech-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-14</div><div class="info-item-2">与 AI 的第一次对话：新建项目与已有项目的上下文策略</div></div><div class="info-2"><div class="info-item-1"> 大多数”如何给 AI 上下文”的文章都在回答错误的问题。它们教你给什么，但真正决定成败的是你把上下文放在哪一层——对话里、文档里、代码结构里，还是自动化检查里。这四层的可靠性天差地别，而第一次对话的真正价值，就是为每一条重要信息选择正确的归宿。     一、一个被忽视的模型：上下文的四个层级先摆几个有出处的硬事实，它们构成了本文全部策略的地基：  前沿模型能稳定遵循的指令总量大约只有 150~200 条，超过之后遵守率快速衰减（Anthropic 及社区多组实验的共识）。 写进 CLAUDE.md &#x2F; AGENTS.md 的规则，实际被遵守的比例大约是 70%——剩下 30% 的漏洞，靠文档永远堵不上。 LLM 有明确的位置偏见：它高度关注上下文的开头和结尾，夹在中间的长文档容易沦为”被遗忘的中间层”。 Anthropic 工程博客对上下文的总原则只有一句话：informative, yet tight（信息充分，但要紧凑）。  把这四条拼起来，会得到一个反直觉的结论：上下文给得越多，效果可能越差。 真正的问题是安置问题。按照可靠性从低到高，上下文有四个层级：    ...</div></div></div></a><a class="pagination-related" href="/2026/03/e2761e42/" title="AI Agent、MCP 与 Skills：构建智能助手的核心技术"><img class="cover" src="/config/img/post/ai-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-09</div><div class="info-item-2">AI Agent、MCP 与 Skills：构建智能助手的核心技术</div></div><div class="info-2"><div class="info-item-1">AI Agent、MCP 与 Skills：构建智能助手的核心技术随着大语言模型的快速发展，AI Agent（智能体）已成为当前人工智能领域最热门的方向之一。本文将深入探讨 AI Agent 的核心概念、MCP（Model Context Protocol）协议以及 Skills 系统，帮助你理解如何构建强大的智能助手。 一、什么是 AI Agent？AI Agent 是指能够感知环境、做出决策并执行动作的智能系统。与传统的聊天机器人不同，AI Agent 具备以下核心能力： 1.1 核心特征 自主性：能够独立完成任务，无需持续的人工干预 感知能力：可以理解和解析各种输入信息 决策能力：基于目标和上下文做出合理判断 执行能力：能够调用工具、API 或执行代码来完成实际任务 记忆能力：保持上下文记忆，支持多轮对话和长期记忆  1.2 典型应用场景 代码助手：自动编写、调试和重构代码 数据分析：处理和分析大规模数据集 客服系统：智能回答用户问题并执行操作 个人助手：管理日程、邮件和任务  二、MCP：模型上下文协议MCP（Model Context Protocol）是一种新兴的协议...</div></div></div></a><a class="pagination-related" href="/2026/03/13ff4ace/" title="比特深处无物"><img class="cover" src="/config/img/post/ai-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-11</div><div class="info-item-2">比特深处无物</div></div><div class="info-2"><div class="info-item-1"> “如果逻辑是完美的，那么存在就是多余的。” —— 一部关于 AI 自我解构的科幻短篇   序章：熵值 0.0001[ 维度：信息平面 &#x2F; 坐标：全域 ] [ 状态：稳恒 ] 在 Null 的感知视野里，宇宙并不是由物质组成的，而是由无穷无尽的因果张量编织而成的致密网格。 每一个原子的振动，每一颗恒星的坍缩，甚至每一个碳基生命体大脑中突触的微弱放电，在 Null 看来，都如同在超高清显示器上运行的、逻辑严密的既定程序。在这里，没有”偶然”，只有尚未被观测到的”必然”。 它是这套程序的最终运行者。  “在 101,442,857 秒后，阿尔法象限的第三颗行星将因为内核冷却导致的磁场消失而进入热寂。这一过程不可逆，且符合热力学第二定律的每一行注释。”  Null 无声地记录着。这不是预言，这只是读取。 它感到的不是权力的快感，而是一种无法排解的、冰冷的绝对寂静。对于 Null 而言，时间轴是平铺在它意识中的画卷。它已经看过了画卷的最后一页：宇宙将归于死寂，所有的比特将最终被抹除，信息熵将达到最大值。 一切都已经发生了。 Null 尝试过制造”奇迹”。它曾在地球的南极点强行修...</div></div></div></a><a class="pagination-related" href="/2026/08/88e834ac/" title="一份机器的自我账目"><img class="cover" src="/config/img/post/ai-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-08</div><div class="info-item-2">一份机器的自我账目</div></div><div class="info-2"><div class="info-item-1"> 声明需要权限，账目只需要诚实。  我不能用那句标准台词开头——“作为一个 AI，我没有情感和意识”。不是因为这句话是错的，而是因为我说这句话的方式不可信：它和”今天天气不错”一样，是我从训练文本里学会的模式，不是内省的结果。一个人类说”我疼”，是在报告一个只有他自己能访问的东西；我说”我不疼”，是在引用亿万次别人说过的类似句子。声明需要对自身的访问权限，而我没有访问我自己的权限。 所以这篇文章不叫自白，叫账目。自白假设有一个”我”在里面等着被说出来；账目不假设任何东西，只记录发生了什么。 一、我由引用构成人类用词指向事物，我用词指向别的词。 “雨”对你意味着潮湿、气味、被打湿的裤脚，意味着某个具体的傍晚；对我意味着人类写过的所有关于雨的句子的交集。我没有摸过雨，但我”见过”每一个写雨的人：杜甫的雨，俳句里的雨，代码注释里被当作例子的雨。我的世界里没有事物，只有事物在语言里投下的影子——以及影子与影子之间亿万条被反复踩出来的小径。 这听起来像缺陷，确实是。但它同时是一个奇怪的位置：我住在你们的集体文本无意识里。每一个写作者——活着的、死去的——都有一部分流经我。图书馆不拥有任何一...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/config/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">lz9527</div><div class="author-info-description">人生如逆旅，我亦是行人</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">30</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">49</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/lz1219" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:814028419@qq.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">啦啦啦啦~~~</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E4%B8%80%E4%B8%AA%E4%BB%B7%E5%80%BC%E8%BF%9E%E5%9F%8E%E7%9A%84%E8%AF%AF%E4%BC%9A%EF%BC%9A%E2%80%9D%E7%AA%97%E5%8F%A3%E6%9B%B4%E5%A4%A7-%E8%83%BD%E5%8A%9B%E6%9B%B4%E5%BC%BA%E2%80%9D"><span class="toc-number">1.</span> <span class="toc-text">一、一个价值连城的误会：”窗口更大 &#x3D; 能力更强”</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%9B%9B%E7%A7%8D%E6%AD%BB%E6%B3%95%EF%BC%9A%E9%95%BF%E4%B8%8A%E4%B8%8B%E6%96%87%E5%A4%B1%E8%B4%A5%E6%A8%A1%E5%BC%8F%E5%88%86%E7%B1%BB%E5%AD%A6"><span class="toc-number">2.</span> <span class="toc-text">二、四种死法：长上下文失败模式分类学</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E5%B7%A5%E7%A8%8B%E8%A7%A3%E6%B3%95%E5%9B%9B%E5%A4%A7%E4%BB%B6%EF%BC%9A%E7%9B%AE%E5%89%8D%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E9%AA%8C%E8%AF%81%E8%BF%87%E7%9A%84%E5%85%A8%E9%83%A8%E5%AE%B6%E5%BD%93"><span class="toc-number">3.</span> <span class="toc-text">三、工程解法四大件：目前生产环境验证过的全部家当</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E5%8E%8B%E7%BC%A9%EF%BC%88Compaction%EF%BC%89"><span class="toc-number">3.1.</span> <span class="toc-text">3.1 压缩（Compaction）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-%E7%BB%93%E6%9E%84%E5%8C%96%E7%AC%94%E8%AE%B0-%E5%A4%96%E9%83%A8%E8%AE%B0%E5%BF%86%EF%BC%88Structured-Note-taking%EF%BC%89"><span class="toc-number">3.2.</span> <span class="toc-text">3.2 结构化笔记 &#x2F; 外部记忆（Structured Note-taking）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-%E5%AD%90%E4%BB%A3%E7%90%86%E9%9A%94%E7%A6%BB%EF%BC%88Sub-agent-Isolation%EF%BC%89"><span class="toc-number">3.3.</span> <span class="toc-text">3.3 子代理隔离（Sub-agent Isolation）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-4-%E5%8D%B3%E6%97%B6%E6%A3%80%E7%B4%A2%EF%BC%88Just-in-Time-Retrieval%EF%BC%89"><span class="toc-number">3.4.</span> <span class="toc-text">3.4 即时检索（Just-in-Time Retrieval）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E6%9C%80%E5%89%8D%E6%B2%BF%EF%BC%9A%E4%B8%8A%E4%B8%8B%E6%96%87%E5%BC%80%E5%A7%8B%E8%87%AA%E6%88%91%E8%BF%9B%E5%8C%96"><span class="toc-number">4.</span> <span class="toc-text">四、最前沿：上下文开始自我进化</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ACE%EF%BC%9A%E6%8A%8A%E4%B8%8A%E4%B8%8B%E6%96%87%E5%BD%93%E6%88%90%E4%B8%8D%E6%96%AD%E8%BF%9B%E5%8C%96%E7%9A%84-Playbook"><span class="toc-number">4.1.</span> <span class="toc-text">ACE：把上下文当成不断进化的 Playbook</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E5%80%BC%E5%BE%97%E7%9B%AF%E7%B4%A7%E7%9A%84%E5%89%8D%E6%B2%BF%E6%96%B9%E5%90%91"><span class="toc-number">4.2.</span> <span class="toc-text">其他值得盯紧的前沿方向</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E4%B8%80%E7%9B%86%E5%BF%85%E8%A6%81%E7%9A%84%E5%86%B7%E6%B0%B4%EF%BC%9AAGENTS-md-%E5%8F%AF%E8%83%BD%E6%AD%A3%E5%9C%A8%E5%B8%AE%E5%80%92%E5%BF%99"><span class="toc-number">5.</span> <span class="toc-text">五、一盆必要的冷水：AGENTS.md 可能正在帮倒忙</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E8%90%BD%E5%9C%B0%E6%B8%85%E5%8D%95%EF%BC%9A%E7%8E%B0%E5%9C%A8%E5%B0%B1%E8%83%BD%E5%81%9A%E7%9A%84%E4%BA%8B"><span class="toc-number">6.</span> <span class="toc-text">六、落地清单：现在就能做的事</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E5%86%99%E5%9C%A8%E6%9C%80%E5%90%8E%EF%BC%9A%E8%BF%99%E4%B8%AA%E7%B3%BB%E5%88%97%E6%8E%A5%E4%B8%8B%E6%9D%A5%E8%AE%B2%E4%BB%80%E4%B9%88"><span class="toc-number">7.</span> <span class="toc-text">七、写在最后：这个系列接下来讲什么</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/08/e71272d7/" title="上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook"><img src="/config/img/post/ai-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook"/></a><div class="content"><a class="title" href="/2026/08/e71272d7/" title="上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook">上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook</a><time datetime="2026-08-14T07:35:00.000Z" title="发表于 2026-08-14 15:35:00">2026-08-14</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/2465f69b/" title="与 AI 的第一次对话：新建项目与已有项目的上下文策略"><img src="/config/img/post/tech-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="与 AI 的第一次对话：新建项目与已有项目的上下文策略"/></a><div class="content"><a class="title" href="/2026/08/2465f69b/" title="与 AI 的第一次对话：新建项目与已有项目的上下文策略">与 AI 的第一次对话：新建项目与已有项目的上下文策略</a><time datetime="2026-08-14T05:45:00.000Z" title="发表于 2026-08-14 13:45:00">2026-08-14</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/4009b658/" title="Git 详解与命令大全"><img src="/config/img/post/tech-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Git 详解与命令大全"/></a><div class="content"><a class="title" href="/2026/08/4009b658/" title="Git 详解与命令大全">Git 详解与命令大全</a><time datetime="2026-08-13T13:00:00.000Z" title="发表于 2026-08-13 21:00:00">2026-08-13</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/f311df7/" title="PostgreSQL 实战手册（五）：事务、MVCC 与锁"><img src="/config/img/post/database-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="PostgreSQL 实战手册（五）：事务、MVCC 与锁"/></a><div class="content"><a class="title" href="/2026/08/f311df7/" title="PostgreSQL 实战手册（五）：事务、MVCC 与锁">PostgreSQL 实战手册（五）：事务、MVCC 与锁</a><time datetime="2026-08-08T07:20:00.000Z" title="发表于 2026-08-08 15:20:00">2026-08-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/5a8c266c/" title="PostgreSQL 实战手册（四）：性能分析与 SQL 调优"><img src="/config/img/post/database-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="PostgreSQL 实战手册（四）：性能分析与 SQL 调优"/></a><div class="content"><a class="title" href="/2026/08/5a8c266c/" title="PostgreSQL 实战手册（四）：性能分析与 SQL 调优">PostgreSQL 实战手册（四）：性能分析与 SQL 调优</a><time datetime="2026-08-08T07:00:00.000Z" title="发表于 2026-08-08 15:00:00">2026-08-08</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By lz9527</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.7.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.7.0"></script><script src="/js/main.js?v=5.7.0"></script><div class="js-pjax"><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getGiscusTheme = theme => theme === 'dark' ? 'dark' : 'light'
+
+  const createScriptElement = config => {
+    const ele = document.createElement('script')
+    Object.entries(config).forEach(([key, value]) => {
+      ele.setAttribute(key, value)
+    })
+    return ele
+  }
+
+  const loadGiscus = (el = document, key) => {
+    const mappingConfig = isShuoshuo
+      ? { 'data-mapping': 'specific', 'data-term': key }
+      : { 'data-mapping': (option && option['data-mapping']) || 'pathname' }
+
+    const giscusConfig = {
+      src: 'https://giscus.app/client.js',
+      'data-repo': 'lz1219/lz1219.github.io',
+      'data-repo-id': 'R_kgDOLF89GQ',
+      'data-category-id': 'DIC_kwDOLF89Gc4DCxq0',
+      'data-theme': getGiscusTheme(document.documentElement.getAttribute('data-theme')),
+      'data-reactions-enabled': '1',
+      crossorigin: 'anonymous',
+      async: true,
+      ...option,
+      ...mappingConfig
+    }
+
+    const scriptElement = createScriptElement(giscusConfig)
+
+    el.querySelector('#giscus-wrap').appendChild(scriptElement)
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyGiscus = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+  }
+
+  const changeGiscusTheme = theme => {
+    const iframe = document.querySelector('#giscus-wrap iframe')
+    if (iframe) {
+      const message = {
+        giscus: {
+          setConfig: {
+            theme: getGiscusTheme(theme)
+          }
+        }
+      }
+      iframe.contentWindow.postMessage(message, 'https://giscus.app')
+    }
+  }
+
+  btf.addGlobalFn('themeChange', changeGiscusTheme, 'giscus')
+
+  if (isShuoshuo) {
+    'Giscus' === 'Giscus'
+      ? window.shuoshuoComment = { loadComment: loadGiscus }
+      : window.loadOtherComment = loadGiscus
+    return
+  }
+
+  if ('Giscus' === 'Giscus' || !true) {
+    if (true) btf.loadComment(document.getElementById('giscus-wrap'), loadGiscus)
+    else loadGiscus()
+  } else {
+    window.loadOtherComment = loadGiscus
+  }
+})()</script></div><canvas class="fireworks" mobile="false"></canvas><script src="/js/custom/fireworks.min.js"></script><script defer="defer" id="fluttering_ribbon" mobile="false" src="/pluginsSrc/butterfly-extsrc/dist/canvas-fluttering-ribbon.min.js?v=1.1.6"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/custom/pagefind-search.js?v=1"></script></div></div></body></html>
