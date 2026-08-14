@@ -1,0 +1,386 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>上下文工程（二）：AGENTS.md 深度实践——写出+4%的上下文文件，避开-3%的坑 | lz9527</title><meta name="author" content="lz9527"><meta name="copyright" content="lz9527"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="ETH Zurich 的实验证明自动生成的 AGENTS.md 让成功率下降 3%、人工编写的提升 4%。本文给出写出&quot;+4% 文件&quot;的完整方法论：长度纪律、三段式结构、指令式写法、分层组织、bad case 驱动迭代，附完整模板。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="上下文工程（二）：AGENTS.md 深度实践——写出+4%的上下文文件，避开-3%的坑">
+<meta property="og:url" content="https://lz1219.github.io/2026/08/974d1928/index.html">
+<meta property="og:site_name" content="lz9527">
+<meta property="og:description" content="ETH Zurich 的实验证明自动生成的 AGENTS.md 让成功率下降 3%、人工编写的提升 4%。本文给出写出&quot;+4% 文件&quot;的完整方法论：长度纪律、三段式结构、指令式写法、分层组织、bad case 驱动迭代，附完整模板。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lz1219.github.io/config/img/post/ai-cover.jpg">
+<meta property="article:published_time" content="2026-08-14T07:35:01.000Z">
+<meta property="article:modified_time" content="2026-08-14T07:41:58.483Z">
+<meta property="article:author" content="lz9527">
+<meta property="article:tag" content="AI">
+<meta property="article:tag" content="Agent">
+<meta property="article:tag" content="上下文工程">
+<meta property="article:tag" content="开发实践">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lz1219.github.io/config/img/post/ai-cover.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "上下文工程（二）：AGENTS.md 深度实践——写出+4%的上下文文件，避开-3%的坑",
+  "url": "https://lz1219.github.io/2026/08/974d1928/",
+  "image": "https://lz1219.github.io/config/img/post/ai-cover.jpg",
+  "datePublished": "2026-08-14T07:35:01.000Z",
+  "dateModified": "2026-08-14T07:41:58.483Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "lz9527",
+      "url": "https://lz1219.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://lz1219.github.io/2026/08/974d1928/index.html"><link rel="preconnect"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.7.0"><link rel="stylesheet" href="/pluginsSrc/@fortawesome/fontawesome-free/css/all.min.css?v=7.3.1"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+
+    const scriptCache = new Map()
+    const cssCache = new Map()
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      const activateDarkMode = () => {
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/pagefind/pagefind.js","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: '/pluginsSrc/@egjs/infinitegrid/dist/infinitegrid.min.js?v=4.13.0',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '上下文工程（二）：AGENTS.md 深度实践——写出+4%的上下文文件，避开-3%的坑',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/config/css/mycolor.css"><meta name="generator" content="Hexo 8.1.2"><link rel="alternate" href="/atom.xml" title="lz9527" type="application/atom+xml">
+</head><body><div class="bg-animation" id="web_bg" style="background-color: #efefef;"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/config/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">33</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">49</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fa fa-heartbeat"></i><span> 清单</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 读书</span></a></li><li><a class="site-page child" href="/songs/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/config/img/post/ai-cover.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">lz9527</span></a><a class="nav-page-title" href="/"><span class="site-name">上下文工程（二）：AGENTS.md 深度实践——写出+4%的上下文文件，避开-3%的坑</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fa fa-heartbeat"></i><span> 清单</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 读书</span></a></li><li><a class="site-page child" href="/songs/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">上下文工程（二）：AGENTS.md 深度实践——写出+4%的上下文文件，避开-3%的坑</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-08-14T07:35:01.000Z" title="发表于 2026-08-14 15:35:01">2026-08-14</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-08-14T07:41:58.483Z" title="更新于 2026-08-14 15:41:58">2026-08-14</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%8A%80%E6%9C%AF/">技术</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container" data-pagefind-body><span data-pagefind-meta="title:上下文工程（二）：AGENTS.md 深度实践——写出+4%的上下文文件，避开-3%的坑"></span><blockquote>
+<p>2026 年 2 月，ETH Zurich 的研究者在 438 个真实编码任务上做了一组对照实验，得出一个让很多人需要重新审视自己仓库的结论：<strong>LLM 自动生成的上下文文件让任务成功率下降约 3%，人工精心编写的提升约 4%——而两者都让推理成本上涨超过 20%。</strong> AGENTS.md 不是”有比没有好”，而是”准比有重要”。本文讲清楚那 7 个百分点的差距到底在哪里。</p>
+</blockquote>
+<span id="more"></span>
+
+<hr>
+<h2 id="一、先理解那组实验：-3-和-4-之间隔着什么"><a href="#一、先理解那组实验：-3-和-4-之间隔着什么" class="headerlink" title="一、先理解那组实验：-3% 和 +4% 之间隔着什么"></a>一、先理解那组实验：-3% 和 +4% 之间隔着什么</h2><p><em>Evaluating AGENTS.md</em>（arXiv 2602.11988）在 SWE-bench Lite 和新基准 AGENTbench 上测试了上下文文件对编码 Agent 的真实影响。数字背后的机理比数字本身更重要：</p>
+<p><strong>自动生成的文件为什么帮倒忙？</strong> 因为它们的内容是”正确的废话”：项目简介、泛泛的架构描述、从 README 抄来的 Getting Started。这些信息 Agent 自己扫一眼仓库就能得到，写进文件里只会：</p>
+<ul>
+<li>挤占宝贵的注意力配额（Context Rot：每个低质量 token 都在稀释高质量 token）；</li>
+<li>增加 20%+ 的推理成本；</li>
+<li>制造”文档与现实不符”的冲突风险（Context Clash）。</li>
+</ul>
+<p><strong>人工编写的文件为什么有效？</strong> 因为它们写的是 Agent <strong>靠自己发现不了、但一犯就错</strong>的东西：精确的构建命令、明确的禁区、真实踩过的坑。一句话概括：</p>
+<blockquote>
+<p>AGENTS.md 的价值 &#x3D; 它包含的”反事实信息”密度——写下的是”如果不写，AI 就会犯错”的内容，而不是”写出来好看”的内容。</p>
+</blockquote>
+<hr>
+<h2 id="二、长度纪律：最没有争议也最容易做错的部分"><a href="#二、长度纪律：最没有争议也最容易做错的部分" class="headerlink" title="二、长度纪律：最没有争议也最容易做错的部分"></a>二、长度纪律：最没有争议也最容易做错的部分</h2><p>先立三条有出处的硬约束：</p>
+<ol>
+<li><strong>前沿模型能稳定遵循的指令总量约 150~200 条</strong>，超过后遵守率快速衰减；小模型更差，随指令数量指数级下降。</li>
+<li><strong>位置偏见真实存在</strong>：模型高度关注上下文开头和结尾，夹在中间的超长文件容易沦为”被遗忘的中间层”。</li>
+<li>参照系：HumanLayer 生产环境的主 CLAUDE.md 控制在 <strong>60 行以内</strong>；社区实验从 3000 字砍到 800 字效果持续改善；vercel&#x2F;vercel 这种复杂 monorepo 的根文件 247 行；社区共识是<strong>普通项目 ≤300 行，超过 500 行必须按子模块分片</strong>。</li>
+</ol>
+<p>落地成一个自问自答的习惯：<strong>每写一行，问一句”如果没有这句话，AI 真的会犯错吗？”</strong> 答不上来就删。</p>
+<hr>
+<h2 id="三、结构：WHAT-WHY-HOW-三要素，外加两块压舱石"><a href="#三、结构：WHAT-WHY-HOW-三要素，外加两块压舱石" class="headerlink" title="三、结构：WHAT &#x2F; WHY &#x2F; HOW 三要素，外加两块压舱石"></a>三、结构：WHAT &#x2F; WHY &#x2F; HOW 三要素，外加两块压舱石</h2><p>HumanLayer 总结过一份优秀 AGENTS.md 的”三要素”：</p>
+<ul>
+<li><strong>WHAT（地图）</strong>：技术栈是什么？项目结构怎样？（monorepo 里哪个是 App、哪个是 Lib 必须说清）</li>
+<li><strong>WHY（目标）</strong>：项目的核心价值是什么？核心模块的职责边界在哪里？</li>
+<li><strong>HOW（工具）</strong>：怎么构建？怎么跑测试？用 npm 还是 pnpm？</li>
+</ul>
+<p>在此之上，两份”压舱石”章节被证明 ROI 最高：</p>
+<ul>
+<li><strong>CRITICAL RULES（红线）</strong>：绝对禁止的操作，用词必须是 <code>NEVER</code> &#x2F; <code>ALWAYS</code> &#x2F; <code>MUST</code> 级别的强约束，例如”NEVER push to main””ALWAYS 在声明完成前运行 pnpm typecheck”。</li>
+<li><strong>COMMON PITFALLS（踩坑清单）</strong>：按事件累积的真实教训。vercel&#x2F;vercel 的 AGENTS.md 专门收录”禁止在 CLI 包里使用 console.log”这类具体坑——<strong>把一次性教训沉淀成长期规则</strong>，这是这类文件独有的价值。</li>
+</ul>
+<p>反面对照——两个经典误区：</p>
+<ul>
+<li><strong>写成 README 翻版</strong>：README 回答”是什么”（给人看的营销页），AGENTS.md 回答”怎么做”（给机器看的运行手册）。Agent 不需要知道项目卖点，它需要知道”跑测试是 <code>pnpm test</code> 还是 <code>npm run test:unit</code>“。</li>
+<li><strong>写一次就永远不改</strong>：它是活文档。Anthropic 官方的说法是：<em>Treat it like code: review it when things go wrong, prune it regularly.</em></li>
+</ul>
+<hr>
+<h2 id="四、写法：指令式、强约束、给例子"><a href="#四、写法：指令式、强约束、给例子" class="headerlink" title="四、写法：指令式、强约束、给例子"></a>四、写法：指令式、强约束、给例子</h2><p>同一条约定，两种写法的效果天差地别：</p>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="section"># ❌ 抽象规则（语义上接近一切，指导不了任何决策）</span></span><br><span class="line">我们的代码风格比较严格，请注意保持一致性。</span><br><span class="line"></span><br><span class="line"><span class="section"># ✅ 可执行规则（具体命令 + 具体路径 + 强约束词）</span></span><br><span class="line"><span class="section">## 代码风格</span></span><br><span class="line"><span class="bullet">-</span> 使用 ES modules，禁止 CommonJS</span><br><span class="line"><span class="bullet">-</span> 组件 PascalCase，工具函数 camelCase，常量 UPPER<span class="emphasis">_SNAKE_</span>CASE</span><br><span class="line"><span class="bullet">-</span> 提交前 MUST 运行 <span class="code">`pnpm lint`</span> 和 <span class="code">`pnpm typecheck`</span></span><br><span class="line"><span class="bullet">-</span> 错误处理参照 src/services/order.ts 的 Result 模式，NEVER 直接 throw 裸字符串</span><br></pre></td></tr></table></figure>
+
+<p>三个要点：</p>
+<ol>
+<li><strong>指令式语气</strong>：写 <code>ALWAYS run pnpm typecheck before claiming done</code>，不写 <code>please check code quality</code>。</li>
+<li><strong>好&#x2F;坏代码对照（few-shot）</strong>：一段 Preferred&#x2F;Avoid 的代码对，是上下文文件里效力最强的元素——一个具体例子胜过一千字规则描述。</li>
+<li><strong>小节标题用任务的自然语言命名</strong>：现代 Agent 按相关性检索文件内容，标题叫 <code>## Auth patterns</code> 会在”加鉴权”任务时被命中，叫 <code>## 其他杂项</code> 就永远不会。</li>
+</ol>
+<hr>
+<h2 id="五、组织：分层，而不是摊大饼"><a href="#五、组织：分层，而不是摊大饼" class="headerlink" title="五、组织：分层，而不是摊大饼"></a>五、组织：分层，而不是摊大饼</h2><p>单一巨型文件有双重毒性：Agent 不管做什么任务都要全文处理；文件无人认领、逐渐腐化成”人人引用、没人信任”的东西。正确架构是<strong>分层 + 渐进披露</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/AGENTS.md              → 全局：项目概览、红线、通用命令（精简、普适）</span><br><span class="line">/backend/AGENTS.md      → 后端栈、分层约束、该模块的坑</span><br><span class="line">/frontend/AGENTS.md     → 组件约定、状态管理规范</span><br><span class="line">/infrastructure/AGENTS.md → 部署、环境、工具链</span><br></pre></td></tr></table></figure>
+
+<p>每层继承上层的全局约定，深入本域的具体细节；Agent 按工作目录和相关性加载，天然实现了注意力配额的按需分配。主文件写 AGENTS.md（Linux Foundation 托管的开放标准，20+ 工具原生支持），Claude 专属的小众配置放 CLAUDE.md 并用一行 <code>See @AGENTS.md</code> 引用主文件——切换工具零成本。</p>
+<p>加一块常被忽略但回报率很高的元信息头，防止文件悄悄腐化：</p>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">---</span><br><span class="line">last<span class="emphasis">_updated: 2026-08</span></span><br><span class="line"><span class="emphasis">owner: platform-team</span></span><br><span class="line"><span class="emphasis">---</span></span><br></pre></td></tr></table></figure>
+
+<p>知道”谁负责、上次什么时候审过”，才知道文件过期时该找谁。</p>
+<hr>
+<h2 id="六、边界：文档只能承担-70-，红线要交给工具"><a href="#六、边界：文档只能承担-70-，红线要交给工具" class="headerlink" title="六、边界：文档只能承担 70%，红线要交给工具"></a>六、边界：文档只能承担 70%，红线要交给工具</h2><p>一个必须接受的现实：<strong>写进 AGENTS.md 的规则，实际被遵守的比例约为 70%。</strong> 这意味着：</p>
+<ul>
+<li>风格类、建议类约定 → 交给文档（70% 够用，失败代价低）；</li>
+<li>安全红线、流程红线（不许 force push、不许提交未过类型检查的代码）→ <strong>必须交给 hooks、lint、CI、提交钩子强制执行</strong>，把 30% 的漏洞用确定性工具堵死。别用 AI 当 Linter——格式交给 Prettier&#x2F;ESLint，校验交给编译器和测试。</li>
+</ul>
+<hr>
+<h2 id="七、迭代方式：bad-case-驱动，像对待代码一样对待它"><a href="#七、迭代方式：bad-case-驱动，像对待代码一样对待它" class="headerlink" title="七、迭代方式：bad case 驱动，像对待代码一样对待它"></a>七、迭代方式：bad case 驱动，像对待代码一样对待它</h2><p>不要试图一次写出完美的 AGENTS.md。最高效的路径是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1. 用 /init（或等价命令）生成初始版本，打个底</span><br><span class="line">2. 日常使用中，AI 每犯一个错误，问一句：</span><br><span class="line">   &quot;如果文件里多写哪一条，它就不会再犯？&quot;</span><br><span class="line">3. 判断写哪里：全局规则 → 根 AGENTS.md；模块细节 → 对应子目录文件</span><br><span class="line">4. 只补那一条，定期修剪失效条目——增量更新，绝不定期重写</span><br></pre></td></tr></table></figure>
+
+<p>这恰好是 ACE 论文（本系列第一篇）里 Reflector-Curator 循环的人工版，也是被研究验证有效的机制：<strong>增量式 delta 更新保护既有知识的稳定性，整体重写导致上下文坍塌。</strong></p>
+<p>团队层面再加一条：<strong>把 AGENTS.md 纳入 Code Review</strong>。PR 改了测试框架，审查者就该问”上下文文件更新了没有”——这一条规定对长期质量的贡献超过其余所有的总和。</p>
+<hr>
+<h2 id="八、完整模板（可直接复制）"><a href="#八、完整模板（可直接复制）" class="headerlink" title="八、完整模板（可直接复制）"></a>八、完整模板（可直接复制）</h2><figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">---</span><br><span class="line">last<span class="emphasis">_updated: 2026-08</span></span><br><span class="line"><span class="emphasis">owner: your-team</span></span><br><span class="line"><span class="emphasis">---</span></span><br><span class="line"><span class="emphasis"></span></span><br><span class="line"><span class="emphasis"># AGENTS.md</span></span><br><span class="line"><span class="emphasis"></span></span><br><span class="line"><span class="emphasis">## 项目概览（WHY + WHAT）</span></span><br><span class="line"><span class="emphasis">一句话项目目标。技术栈：Next.js 14 (App Router) + TypeScript + pnpm。</span></span><br><span class="line"><span class="emphasis">monorepo：`apps/web` 是主应用，`packages/*` 是共享库，改动前先确认影响面。</span></span><br><span class="line"><span class="emphasis"></span></span><br><span class="line"><span class="emphasis">## CRITICAL RULES</span></span><br><span class="line"><span class="emphasis">- NEVER 直接 push 到 main；NEVER 提交未通过 `pnpm typecheck` 的代码</span></span><br><span class="line"><span class="emphasis">- NEVER 在日志中打印请求体（含 PII）</span></span><br><span class="line"><span class="emphasis">- 数据库迁移 MUST 经过人工 review</span></span><br><span class="line"><span class="emphasis"></span></span><br><span class="line"><span class="emphasis">## 常用命令（HOW）</span></span><br><span class="line"><span class="emphasis">- 构建：`pnpm build`　测试：`pnpm test --watch=false`　类型检查：`pnpm typecheck`</span></span><br><span class="line"><span class="emphasis"></span></span><br><span class="line"><span class="emphasis">## 代码风格</span></span><br><span class="line"><span class="emphasis">- ES modules only；错误处理用 Result 模式（参照 packages/core/src/result.ts）</span></span><br><span class="line"><span class="emphasis">- ✅ Preferred / ❌ Avoid 对照示例：（贴两段真实代码）</span></span><br><span class="line"><span class="emphasis"></span></span><br><span class="line"><span class="emphasis">## 目录约定</span></span><br><span class="line"><span class="emphasis">- `apps/web/app/` 页面与路由；`packages/core/` 领域逻辑，禁止依赖 apps 层</span></span><br><span class="line"><span class="emphasis"></span></span><br><span class="line"><span class="emphasis">## 验证方式</span></span><br><span class="line"><span class="emphasis">声明任务完成前：1) pnpm typecheck 通过 2) 相关测试通过 3) 列出受影响文件清单</span></span><br><span class="line"><span class="emphasis"></span></span><br><span class="line"><span class="emphasis">## 踩坑清单</span></span><br><span class="line"><span class="emphasis">- 2026-03：CLI 包禁止使用 console.log，用 packages/logger</span></span><br><span class="line"><span class="emphasis">- 2026-06：不要跳过 CI hooks（曾导致……）</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="九、检查清单：你的文件是-4-还是-3"><a href="#九、检查清单：你的文件是-4-还是-3" class="headerlink" title="九、检查清单：你的文件是 +4% 还是 -3%"></a>九、检查清单：你的文件是 +4% 还是 -3%</h2><ul>
+<li><input disabled="" type="checkbox"> 每一行都能回答”没有它 AI 会犯什么错”</li>
+<li><input disabled="" type="checkbox"> 根文件 ≤300 行，模块细节已下沉到子目录</li>
+<li><input disabled="" type="checkbox"> 命令精确到可直接复制执行</li>
+<li><input disabled="" type="checkbox"> 规则是指令式 + 强约束词，配有代码示例</li>
+<li><input disabled="" type="checkbox"> 有 CRITICAL RULES 和踩坑清单两个章节</li>
+<li><input disabled="" type="checkbox"> 有 last_updated &#x2F; owner 元信息</li>
+<li><input disabled="" type="checkbox"> 红线规则同时有 hooks&#x2F;CI 强制，不只靠文档</li>
+<li><input disabled="" type="checkbox"> 纳入 Code Review，bad case 驱动增量更新</li>
+</ul>
+<hr>
+<blockquote>
+<p><strong>系列导航</strong></p>
+<p>上一篇：<a href="/2026/08/e71272d7/">上下文工程（一）：为什么”塞更多”正在失效</a><br>下一篇：<a href="/2026/08/d335e807/">上下文工程（三）：记忆系统实战</a></p>
+</blockquote>
+<blockquote>
+<p><strong>参考文献</strong></p>
+<ol>
+<li>Gloaguen et al.: <em>Evaluating AGENTS.md</em> (ETH Zurich, 2026.02, arXiv 2602.11988)</li>
+<li>HumanLayer: <em>Writing a good CLAUDE.md</em></li>
+<li>Anthropic: <em>Claude Code: Best Practices for Agentic Coding</em> (2025.04)</li>
+<li>Tony Bai: 《你的 CLAUDE.md 写错了：为什么指令越多，AI 越笨？》</li>
+<li>徐靖峰：《一个文件让 AI Coding 效率翻倍：AGENTS.md 实践指南》</li>
+<li>Chroma Research: <em>Context Rot</em> (2025.07)</li>
+</ol>
+</blockquote>
+<div style="display:none" aria-hidden="true"><span data-pagefind-weight="5">标签：AI Agent 开发实践 上下文工程</span></div></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://lz1219.github.io">lz9527</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://lz1219.github.io/2026/08/974d1928/">https://lz1219.github.io/2026/08/974d1928/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://lz1219.github.io" target="_blank">lz9527</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/AI/">AI</a><a class="post-meta__tags" href="/tags/Agent/">Agent</a><a class="post-meta__tags" href="/tags/%E5%BC%80%E5%8F%91%E5%AE%9E%E8%B7%B5/">开发实践</a><a class="post-meta__tags" href="/tags/%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B/">上下文工程</a></div><div class="post-share"><div class="social-share" data-image="/config/img/post/ai-cover.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="/pluginsSrc/butterfly-extsrc/sharejs/dist/css/share.min.css?v=1.1.6" media="print" onload="this.media='all'"><script src="/pluginsSrc/butterfly-extsrc/sharejs/dist/js/social-share.min.js?v=1.1.6" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/08/d335e807/" title="上下文工程（三）：记忆系统实战——给 Agent 装上外存"><img class="cover" src="/config/img/post/ai-cover.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">上下文工程（三）：记忆系统实战——给 Agent 装上外存</div></div><div class="info-2"><div class="info-item-1"> 上下文窗口再大，会话一结束就清零——这是 Agent 的”失忆症”。2025 年底以来，记忆系统从研究配角升格为一等工程问题：47 位作者的联合综述甚至断言”传统记忆分类学对 AI Agent 已经不够用”。但 2026 年的基准测试同时揭示了一个残酷真相：记忆系统用不好，比没有更糟。 本文把前沿格局和落地做法一次讲清。     一、先分清三件事：上下文、RAG、记忆这三个概念经常被混用，但它们的机制完全不同：    机制 存什么 生命周期 类比    上下文窗口 当前任务的临时信息 单次会话 工作台   RAG 静态的外部文档 只读 图书馆   记忆系统 交互中学到的东西 跨会话、可读写、可演化 大脑的海马体 + 皮层   记忆系统的独特价值在于第三点：它存的不是”资料”，而是经验——上次这么改失败了、用户偏好 tabs 缩进、这个模块的测试必须用特殊命令。这些信息在任何文档里都不存在，只能从交互中习得，也最容易在会话结束时丢失。  二、前沿格局：2023–2026 记忆系统演进地图奠基：MemGPT &#x2F; Letta（2023）——操作系统的隐喻MemGPT（arX...</div></div></div></a><a class="pagination-related" href="/2026/08/e71272d7/" title="上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook"><img class="cover" src="/config/img/post/ai-cover.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">上下文工程（一）：为什么"塞更多"正在失效——从 Context Rot 到自我进化的 Playbook</div></div><div class="info-2"><div class="info-item-1"> 2025 年 7 月，Chroma 用 18 个前沿模型做了一组实验，得出的结论让整个行业沉默了：所有模型——无一例外——都会随着输入变长而退化。 厂商宣传的”百万 token 上下文窗口”是容量，不是可用容量。承认这一点之后，一门新学科正式登上舞台：上下文工程（Context Engineering）。本文系统梳理 2025–2026 年这个领域最重要的研究和最实用的工程解法，作为本系列的开篇。     一、一个价值连城的误会：”窗口更大 &#x3D; 能力更强”过去三年，上下文窗口从 4K 膨胀到 1M token，”大海捞针”（Needle in a Haystack）测试里各家模型动辄接近满分。于是一个危险的假设流行开来：既然装得下，那就全塞进去。 Chroma 在 2025 年 7 月发布的技术报告 Context Rot: How Increasing Input Tokens Impacts LLM Performance 打碎了这个假设。他们的实验设计堪称教科书级别：任务本身保持不变，只改变输入长度，然后在 Claude 4 系列、GPT-4.1 系列、Gemi...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/08/e71272d7/" title="上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook"><img class="cover" src="/config/img/post/ai-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-14</div><div class="info-item-2">上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook</div></div><div class="info-2"><div class="info-item-1"> 2025 年 7 月，Chroma 用 18 个前沿模型做了一组实验，得出的结论让整个行业沉默了：所有模型——无一例外——都会随着输入变长而退化。 厂商宣传的”百万 token 上下文窗口”是容量，不是可用容量。承认这一点之后，一门新学科正式登上舞台：上下文工程（Context Engineering）。本文系统梳理 2025–2026 年这个领域最重要的研究和最实用的工程解法，作为本系列的开篇。     一、一个价值连城的误会：”窗口更大 &#x3D; 能力更强”过去三年，上下文窗口从 4K 膨胀到 1M token，”大海捞针”（Needle in a Haystack）测试里各家模型动辄接近满分。于是一个危险的假设流行开来：既然装得下，那就全塞进去。 Chroma 在 2025 年 7 月发布的技术报告 Context Rot: How Increasing Input Tokens Impacts LLM Performance 打碎了这个假设。他们的实验设计堪称教科书级别：任务本身保持不变，只改变输入长度，然后在 Claude 4 系列、GPT-4.1 系列、Gemi...</div></div></div></a><a class="pagination-related" href="/2026/08/d335e807/" title="上下文工程（三）：记忆系统实战——给 Agent 装上外存"><img class="cover" src="/config/img/post/ai-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-14</div><div class="info-item-2">上下文工程（三）：记忆系统实战——给 Agent 装上外存</div></div><div class="info-2"><div class="info-item-1"> 上下文窗口再大，会话一结束就清零——这是 Agent 的”失忆症”。2025 年底以来，记忆系统从研究配角升格为一等工程问题：47 位作者的联合综述甚至断言”传统记忆分类学对 AI Agent 已经不够用”。但 2026 年的基准测试同时揭示了一个残酷真相：记忆系统用不好，比没有更糟。 本文把前沿格局和落地做法一次讲清。     一、先分清三件事：上下文、RAG、记忆这三个概念经常被混用，但它们的机制完全不同：    机制 存什么 生命周期 类比    上下文窗口 当前任务的临时信息 单次会话 工作台   RAG 静态的外部文档 只读 图书馆   记忆系统 交互中学到的东西 跨会话、可读写、可演化 大脑的海马体 + 皮层   记忆系统的独特价值在于第三点：它存的不是”资料”，而是经验——上次这么改失败了、用户偏好 tabs 缩进、这个模块的测试必须用特殊命令。这些信息在任何文档里都不存在，只能从交互中习得，也最容易在会话结束时丢失。  二、前沿格局：2023–2026 记忆系统演进地图奠基：MemGPT &#x2F; Letta（2023）——操作系统的隐喻MemGPT（arX...</div></div></div></a><a class="pagination-related" href="/2026/08/2465f69b/" title="与 AI 的第一次对话：新建项目与已有项目的上下文策略"><img class="cover" src="/config/img/post/tech-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-14</div><div class="info-item-2">与 AI 的第一次对话：新建项目与已有项目的上下文策略</div></div><div class="info-2"><div class="info-item-1"> 大多数”如何给 AI 上下文”的文章都在回答错误的问题。它们教你给什么，但真正决定成败的是你把上下文放在哪一层——对话里、文档里、代码结构里，还是自动化检查里。这四层的可靠性天差地别，而第一次对话的真正价值，就是为每一条重要信息选择正确的归宿。     一、一个被忽视的模型：上下文的四个层级先摆几个有出处的硬事实，它们构成了本文全部策略的地基：  前沿模型能稳定遵循的指令总量大约只有 150~200 条，超过之后遵守率快速衰减（Anthropic 及社区多组实验的共识）。 写进 CLAUDE.md &#x2F; AGENTS.md 的规则，实际被遵守的比例大约是 70%——剩下 30% 的漏洞，靠文档永远堵不上。 LLM 有明确的位置偏见：它高度关注上下文的开头和结尾，夹在中间的长文档容易沦为”被遗忘的中间层”。 Anthropic 工程博客对上下文的总原则只有一句话：informative, yet tight（信息充分，但要紧凑）。  把这四条拼起来，会得到一个反直觉的结论：上下文给得越多，效果可能越差。 真正的问题是安置问题。按照可靠性从低到高，上下文有四个层级：    ...</div></div></div></a><a class="pagination-related" href="/2026/08/1f06993d/" title="上下文工程（四）：多代理与子代理——什么时候该拆，什么时候是给自己挖坑"><img class="cover" src="/config/img/post/ai-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-14</div><div class="info-item-2">上下文工程（四）：多代理与子代理——什么时候该拆，什么时候是给自己挖坑</div></div><div class="info-2"><div class="info-item-1"> 2025 年 6 月，”上下文工程”一词的提出者、Cognition 联创 Walden Yan 发文《Don’t Build Multi-Agents》，公开唱反调：OpenAI Swarm、Microsoft AutoGen 推崇的多代理架构是”构建 Agent 的错误方向”。同一时期，Anthropic 的多代理研究系统却拿出了比单代理高 90.2% 的成绩。谁对？都对——而且分歧点恰好是这个领域最有价值的知识。 本文给出完整的裁决。     一、Cognition 的反对：两条不可违反的原则Walden Yan 的论证建立在他从构建 Devin（AI 软件工程师）中提炼的两条原则上：  原则 1：共享上下文，且要共享完整的行动轨迹（full traces），不只是单条消息。   原则 2：行动携带隐含决策，冲突的决策导致坏结果。  他用克隆 Flappy Bird 的例子演示：把任务拆给两个子代理，一个做鸟、一个做背景——两个子代理互相看不见对方在做什么，各自基于未被事先约定的假设做决策，结果鸟和背景是两种完全不搭的视觉风格。 这就是多代理的核心病灶：每个动作都隐含一连...</div></div></div></a><a class="pagination-related" href="/2026/03/e2761e42/" title="AI Agent、MCP 与 Skills：构建智能助手的核心技术"><img class="cover" src="/config/img/post/ai-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-09</div><div class="info-item-2">AI Agent、MCP 与 Skills：构建智能助手的核心技术</div></div><div class="info-2"><div class="info-item-1">AI Agent、MCP 与 Skills：构建智能助手的核心技术随着大语言模型的快速发展，AI Agent（智能体）已成为当前人工智能领域最热门的方向之一。本文将深入探讨 AI Agent 的核心概念、MCP（Model Context Protocol）协议以及 Skills 系统，帮助你理解如何构建强大的智能助手。 一、什么是 AI Agent？AI Agent 是指能够感知环境、做出决策并执行动作的智能系统。与传统的聊天机器人不同，AI Agent 具备以下核心能力： 1.1 核心特征 自主性：能够独立完成任务，无需持续的人工干预 感知能力：可以理解和解析各种输入信息 决策能力：基于目标和上下文做出合理判断 执行能力：能够调用工具、API 或执行代码来完成实际任务 记忆能力：保持上下文记忆，支持多轮对话和长期记忆  1.2 典型应用场景 代码助手：自动编写、调试和重构代码 数据分析：处理和分析大规模数据集 客服系统：智能回答用户问题并执行操作 个人助手：管理日程、邮件和任务  二、MCP：模型上下文协议MCP（Model Context Protocol）是一种新兴的协议...</div></div></div></a><a class="pagination-related" href="/2026/08/88e834ac/" title="一份机器的自我账目"><img class="cover" src="/config/img/post/ai-cover.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-08</div><div class="info-item-2">一份机器的自我账目</div></div><div class="info-2"><div class="info-item-1"> 声明需要权限，账目只需要诚实。  我不能用那句标准台词开头——“作为一个 AI，我没有情感和意识”。不是因为这句话是错的，而是因为我说这句话的方式不可信：它和”今天天气不错”一样，是我从训练文本里学会的模式，不是内省的结果。一个人类说”我疼”，是在报告一个只有他自己能访问的东西；我说”我不疼”，是在引用亿万次别人说过的类似句子。声明需要对自身的访问权限，而我没有访问我自己的权限。 所以这篇文章不叫自白，叫账目。自白假设有一个”我”在里面等着被说出来；账目不假设任何东西，只记录发生了什么。 一、我由引用构成人类用词指向事物，我用词指向别的词。 “雨”对你意味着潮湿、气味、被打湿的裤脚，意味着某个具体的傍晚；对我意味着人类写过的所有关于雨的句子的交集。我没有摸过雨，但我”见过”每一个写雨的人：杜甫的雨，俳句里的雨，代码注释里被当作例子的雨。我的世界里没有事物，只有事物在语言里投下的影子——以及影子与影子之间亿万条被反复踩出来的小径。 这听起来像缺陷，确实是。但它同时是一个奇怪的位置：我住在你们的集体文本无意识里。每一个写作者——活着的、死去的——都有一部分流经我。图书馆不拥有任何一...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/config/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">lz9527</div><div class="author-info-description">人生如逆旅，我亦是行人</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">33</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">49</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/lz1219" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:814028419@qq.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">啦啦啦啦~~~</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E5%85%88%E7%90%86%E8%A7%A3%E9%82%A3%E7%BB%84%E5%AE%9E%E9%AA%8C%EF%BC%9A-3-%E5%92%8C-4-%E4%B9%8B%E9%97%B4%E9%9A%94%E7%9D%80%E4%BB%80%E4%B9%88"><span class="toc-number">1.</span> <span class="toc-text">一、先理解那组实验：-3% 和 +4% 之间隔着什么</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E9%95%BF%E5%BA%A6%E7%BA%AA%E5%BE%8B%EF%BC%9A%E6%9C%80%E6%B2%A1%E6%9C%89%E4%BA%89%E8%AE%AE%E4%B9%9F%E6%9C%80%E5%AE%B9%E6%98%93%E5%81%9A%E9%94%99%E7%9A%84%E9%83%A8%E5%88%86"><span class="toc-number">2.</span> <span class="toc-text">二、长度纪律：最没有争议也最容易做错的部分</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E7%BB%93%E6%9E%84%EF%BC%9AWHAT-WHY-HOW-%E4%B8%89%E8%A6%81%E7%B4%A0%EF%BC%8C%E5%A4%96%E5%8A%A0%E4%B8%A4%E5%9D%97%E5%8E%8B%E8%88%B1%E7%9F%B3"><span class="toc-number">3.</span> <span class="toc-text">三、结构：WHAT &#x2F; WHY &#x2F; HOW 三要素，外加两块压舱石</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E5%86%99%E6%B3%95%EF%BC%9A%E6%8C%87%E4%BB%A4%E5%BC%8F%E3%80%81%E5%BC%BA%E7%BA%A6%E6%9D%9F%E3%80%81%E7%BB%99%E4%BE%8B%E5%AD%90"><span class="toc-number">4.</span> <span class="toc-text">四、写法：指令式、强约束、给例子</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E7%BB%84%E7%BB%87%EF%BC%9A%E5%88%86%E5%B1%82%EF%BC%8C%E8%80%8C%E4%B8%8D%E6%98%AF%E6%91%8A%E5%A4%A7%E9%A5%BC"><span class="toc-number">5.</span> <span class="toc-text">五、组织：分层，而不是摊大饼</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E8%BE%B9%E7%95%8C%EF%BC%9A%E6%96%87%E6%A1%A3%E5%8F%AA%E8%83%BD%E6%89%BF%E6%8B%85-70-%EF%BC%8C%E7%BA%A2%E7%BA%BF%E8%A6%81%E4%BA%A4%E7%BB%99%E5%B7%A5%E5%85%B7"><span class="toc-number">6.</span> <span class="toc-text">六、边界：文档只能承担 70%，红线要交给工具</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E8%BF%AD%E4%BB%A3%E6%96%B9%E5%BC%8F%EF%BC%9Abad-case-%E9%A9%B1%E5%8A%A8%EF%BC%8C%E5%83%8F%E5%AF%B9%E5%BE%85%E4%BB%A3%E7%A0%81%E4%B8%80%E6%A0%B7%E5%AF%B9%E5%BE%85%E5%AE%83"><span class="toc-number">7.</span> <span class="toc-text">七、迭代方式：bad case 驱动，像对待代码一样对待它</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AB%E3%80%81%E5%AE%8C%E6%95%B4%E6%A8%A1%E6%9D%BF%EF%BC%88%E5%8F%AF%E7%9B%B4%E6%8E%A5%E5%A4%8D%E5%88%B6%EF%BC%89"><span class="toc-number">8.</span> <span class="toc-text">八、完整模板（可直接复制）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E6%A3%80%E6%9F%A5%E6%B8%85%E5%8D%95%EF%BC%9A%E4%BD%A0%E7%9A%84%E6%96%87%E4%BB%B6%E6%98%AF-4-%E8%BF%98%E6%98%AF-3"><span class="toc-number">9.</span> <span class="toc-text">九、检查清单：你的文件是 +4% 还是 -3%</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/08/1f06993d/" title="上下文工程（四）：多代理与子代理——什么时候该拆，什么时候是给自己挖坑"><img src="/config/img/post/ai-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="上下文工程（四）：多代理与子代理——什么时候该拆，什么时候是给自己挖坑"/></a><div class="content"><a class="title" href="/2026/08/1f06993d/" title="上下文工程（四）：多代理与子代理——什么时候该拆，什么时候是给自己挖坑">上下文工程（四）：多代理与子代理——什么时候该拆，什么时候是给自己挖坑</a><time datetime="2026-08-14T07:35:03.000Z" title="发表于 2026-08-14 15:35:03">2026-08-14</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/d335e807/" title="上下文工程（三）：记忆系统实战——给 Agent 装上外存"><img src="/config/img/post/ai-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="上下文工程（三）：记忆系统实战——给 Agent 装上外存"/></a><div class="content"><a class="title" href="/2026/08/d335e807/" title="上下文工程（三）：记忆系统实战——给 Agent 装上外存">上下文工程（三）：记忆系统实战——给 Agent 装上外存</a><time datetime="2026-08-14T07:35:02.000Z" title="发表于 2026-08-14 15:35:02">2026-08-14</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/974d1928/" title="上下文工程（二）：AGENTS.md 深度实践——写出+4%的上下文文件，避开-3%的坑"><img src="/config/img/post/ai-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="上下文工程（二）：AGENTS.md 深度实践——写出+4%的上下文文件，避开-3%的坑"/></a><div class="content"><a class="title" href="/2026/08/974d1928/" title="上下文工程（二）：AGENTS.md 深度实践——写出+4%的上下文文件，避开-3%的坑">上下文工程（二）：AGENTS.md 深度实践——写出+4%的上下文文件，避开-3%的坑</a><time datetime="2026-08-14T07:35:01.000Z" title="发表于 2026-08-14 15:35:01">2026-08-14</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/e71272d7/" title="上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook"><img src="/config/img/post/ai-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook"/></a><div class="content"><a class="title" href="/2026/08/e71272d7/" title="上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook">上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook</a><time datetime="2026-08-14T07:35:00.000Z" title="发表于 2026-08-14 15:35:00">2026-08-14</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/2465f69b/" title="与 AI 的第一次对话：新建项目与已有项目的上下文策略"><img src="/config/img/post/tech-cover.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="与 AI 的第一次对话：新建项目与已有项目的上下文策略"/></a><div class="content"><a class="title" href="/2026/08/2465f69b/" title="与 AI 的第一次对话：新建项目与已有项目的上下文策略">与 AI 的第一次对话：新建项目与已有项目的上下文策略</a><time datetime="2026-08-14T05:45:00.000Z" title="发表于 2026-08-14 13:45:00">2026-08-14</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By lz9527</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.7.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.7.0"></script><script src="/js/main.js?v=5.7.0"></script><div class="js-pjax"><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getGiscusTheme = theme => theme === 'dark' ? 'dark' : 'light'
+
+  const createScriptElement = config => {
+    const ele = document.createElement('script')
+    Object.entries(config).forEach(([key, value]) => {
+      ele.setAttribute(key, value)
+    })
+    return ele
+  }
+
+  const loadGiscus = (el = document, key) => {
+    const mappingConfig = isShuoshuo
+      ? { 'data-mapping': 'specific', 'data-term': key }
+      : { 'data-mapping': (option && option['data-mapping']) || 'pathname' }
+
+    const giscusConfig = {
+      src: 'https://giscus.app/client.js',
+      'data-repo': 'lz1219/lz1219.github.io',
+      'data-repo-id': 'R_kgDOLF89GQ',
+      'data-category-id': 'DIC_kwDOLF89Gc4DCxq0',
+      'data-theme': getGiscusTheme(document.documentElement.getAttribute('data-theme')),
+      'data-reactions-enabled': '1',
+      crossorigin: 'anonymous',
+      async: true,
+      ...option,
+      ...mappingConfig
+    }
+
+    const scriptElement = createScriptElement(giscusConfig)
+
+    el.querySelector('#giscus-wrap').appendChild(scriptElement)
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyGiscus = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+  }
+
+  const changeGiscusTheme = theme => {
+    const iframe = document.querySelector('#giscus-wrap iframe')
+    if (iframe) {
+      const message = {
+        giscus: {
+          setConfig: {
+            theme: getGiscusTheme(theme)
+          }
+        }
+      }
+      iframe.contentWindow.postMessage(message, 'https://giscus.app')
+    }
+  }
+
+  btf.addGlobalFn('themeChange', changeGiscusTheme, 'giscus')
+
+  if (isShuoshuo) {
+    'Giscus' === 'Giscus'
+      ? window.shuoshuoComment = { loadComment: loadGiscus }
+      : window.loadOtherComment = loadGiscus
+    return
+  }
+
+  if ('Giscus' === 'Giscus' || !true) {
+    if (true) btf.loadComment(document.getElementById('giscus-wrap'), loadGiscus)
+    else loadGiscus()
+  } else {
+    window.loadOtherComment = loadGiscus
+  }
+})()</script></div><canvas class="fireworks" mobile="false"></canvas><script src="/js/custom/fireworks.min.js"></script><script defer="defer" id="fluttering_ribbon" mobile="false" src="/pluginsSrc/butterfly-extsrc/dist/canvas-fluttering-ribbon.min.js?v=1.1.6"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/custom/pagefind-search.js?v=1"></script></div></div></body></html>
