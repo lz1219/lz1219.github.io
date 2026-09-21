@@ -10,7 +10,7 @@
   <rights>All rights reserved 2026, lz9527</rights>
   <subtitle>人生如逆旅，我亦是行人</subtitle>
   <title>lz9527</title>
-  <updated>2026-08-14T07:44:35.295Z</updated>
+  <updated>2026-09-21T06:02:30.284Z</updated>
   <entry>
     <author>
       <name>lz9527</name>
@@ -28,7 +28,7 @@
     <published>2026-08-14T07:35:03.000Z</published>
     <summary>Cognition 的《Don't Build Multi-Agents》与 Anthropic 多代理系统 +90.2% 的成绩看似矛盾，实则统一。本文用两条上下文工程原则、2026 年的最新证据和一个决策框架，讲清多代理架构的真实边界。</summary>
     <title>上下文工程（四）：多代理与子代理——什么时候该拆，什么时候是给自己挖坑</title>
-    <updated>2026-08-14T07:44:35.295Z</updated>
+    <updated>2026-09-21T06:02:30.284Z</updated>
   </entry>
   <entry>
     <author>
@@ -47,7 +47,7 @@
     <published>2026-08-14T07:35:02.000Z</published>
     <summary>上下文窗口是工作台，不是仓库。系统梳理 2025–2026 年 Agent 记忆系统的前沿格局（MemGPT/Letta、Mem0、A-MEM、Zep、Anthropic memory tool）与 2026 年最新基准揭示的残酷真相，给出个人与团队可直接落地的文件式记忆方案。</summary>
     <title>上下文工程（三）：记忆系统实战——给 Agent 装上外存</title>
-    <updated>2026-08-14T07:43:15.837Z</updated>
+    <updated>2026-09-21T06:02:30.283Z</updated>
   </entry>
   <entry>
     <author>
@@ -66,7 +66,7 @@
     <published>2026-08-14T07:35:01.000Z</published>
     <summary>ETH Zurich 的实验证明自动生成的 AGENTS.md 让成功率下降 3%、人工编写的提升 4%。本文给出写出&quot;+4% 文件&quot;的完整方法论：长度纪律、三段式结构、指令式写法、分层组织、bad case 驱动迭代，附完整模板。</summary>
     <title>上下文工程（二）：AGENTS.md 深度实践——写出+4%的上下文文件，避开-3%的坑</title>
-    <updated>2026-08-14T07:41:58.483Z</updated>
+    <updated>2026-09-21T06:02:30.282Z</updated>
   </entry>
   <entry>
     <author>
@@ -86,7 +86,7 @@
     <published>2026-08-14T07:35:00.000Z</published>
     <summary>系统梳理 2025–2026 年上下文工程的最前沿研究：Chroma 的 Context Rot 实验证明所有模型随上下文变长而退化，四大失败模式分类学，以及压缩、外部记忆、子代理、即时检索四大工程解法，直到让上下文自我进化的 ACE 框架。</summary>
     <title>上下文工程（一）：为什么&quot;塞更多&quot;正在失效——从 Context Rot 到自我进化的 Playbook</title>
-    <updated>2026-08-14T07:44:59.679Z</updated>
+    <updated>2026-09-21T06:02:30.281Z</updated>
   </entry>
   <entry>
     <author>
